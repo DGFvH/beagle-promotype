@@ -1,12 +1,21 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Activity,
+  BookOpen,
+  GitBranch,
+  Map,
+  RotateCcw,
+} from "lucide-react";
 import { useExperiment } from "./hooks/useExperiment.js";
 import { useAutoplay } from "./hooks/useAutoplay.js";
 import { usePresenterShortcuts, readDemoParams } from "./hooks/usePresenterShortcuts.js";
+import { WALKTHROUGH_STEPS } from "./lib/walkthrough.js";
 import { LogoMark } from "./components/Logo.jsx";
 import Hero from "./components/Hero.jsx";
 import Setup from "./components/Setup.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import MethodologyModal from "./components/MethodologyModal.jsx";
+import WalkthroughRail from "./components/WalkthroughRail.jsx";
 
 const Timeline = lazy(() => import("./components/Timeline.jsx"));
 
@@ -22,6 +31,9 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [showHero, setShowHero] = useState(true);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
+  const [walkthroughActive, setWalkthroughActive] = useState(false);
+  const [walkthroughIndex, setWalkthroughIndex] = useState(0);
+  const [walkthroughCollapsed, setWalkthroughCollapsed] = useState(false);
   const booted = useRef(false);
 
   const { experiment, metric, history } = exp;
@@ -29,49 +41,96 @@ export default function App() {
   const showLanding = inSetup && showHero;
   const presenterActive = !inSetup;
 
+  const setSafeWalkthroughIndex = useCallback((nextIndex) => {
+    setWalkthroughIndex(
+      Math.max(0, Math.min(WALKTHROUGH_STEPS.length - 1, nextIndex))
+    );
+  }, []);
+
   const loadPopulatedDemo = useCallback(
-    async ({ present = false } = {}) => {
+    async ({ present = false, walkthrough = false, collapsed = Boolean(walkthrough || present) } = {}) => {
       setBusy(true);
-      await exp.startSeeded();
-      setShowHero(false);
-      setTab("dashboard");
-      preloadTimeline();
-      if (present) {
-        auto.setSpeed(4);
-        auto.play();
+      try {
+        await exp.startSeeded();
+        setShowHero(false);
+        setTab("dashboard");
+        setWalkthroughActive(Boolean(walkthrough || present));
+        setWalkthroughIndex(0);
+        setWalkthroughCollapsed(Boolean((walkthrough || present) && collapsed));
+        preloadTimeline();
+        if (present) {
+          auto.setSpeed(1);
+          auto.play();
+        }
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     },
     [exp, auto]
   );
 
   useEffect(() => {
     if (booted.current) return;
-    const { autoDemo, present } = readDemoParams();
-    if (autoDemo || present) {
+    const { autoDemo, present, walkthrough } = readDemoParams();
+    if (autoDemo || present || walkthrough) {
       booted.current = true;
-      loadPopulatedDemo({ present: present || autoDemo });
+      loadPopulatedDemo({
+        present: present || autoDemo,
+        walkthrough: walkthrough || present,
+        collapsed: walkthrough || present,
+      });
     }
   }, [loadPopulatedDemo]);
 
-  const handleStartDemo = () => loadPopulatedDemo({ present: false });
+  useEffect(() => {
+    if (!walkthroughActive || inSetup) return;
+    const step = WALKTHROUGH_STEPS[walkthroughIndex];
+    if (!step) return;
+
+    if (step.targetView === "timeline") {
+      preloadTimeline();
+      setTab("timeline");
+      setMethodologyOpen(false);
+      return;
+    }
+
+    setTab("dashboard");
+    setMethodologyOpen(step.targetView === "methodology");
+  }, [walkthroughActive, walkthroughIndex, inSetup]);
+
+  const handleStartWalkthrough = () =>
+    loadPopulatedDemo({ present: false, walkthrough: true });
 
   const handleStart = async (config) => {
     setBusy(true);
-    await exp.start(config);
-    setTab("dashboard");
-    setBusy(false);
+    try {
+      setWalkthroughActive(false);
+      setMethodologyOpen(false);
+      await exp.start(config);
+      setTab("dashboard");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDecide = async () => {
     setBusy(true);
-    await exp.decide();
-    setBusy(false);
+    try {
+      await exp.decide();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleReset = async () => {
+    const keepWalkthrough = walkthroughActive;
+    const keepCollapsed = walkthroughCollapsed;
     auto.pause();
-    await loadPopulatedDemo({ present: false });
+    await loadPopulatedDemo({
+      present: false,
+      walkthrough: keepWalkthrough,
+      collapsed: keepCollapsed,
+    });
   };
 
   usePresenterShortcuts({
@@ -87,6 +146,11 @@ export default function App() {
     onResetDemo: handleReset,
   });
 
+  const setActiveTab = (nextTab) => {
+    if (nextTab === "timeline") preloadTimeline();
+    setTab(nextTab);
+  };
+
   return (
     <div className="min-h-full bg-canvas">
       <Header
@@ -94,25 +158,35 @@ export default function App() {
         inSetup={inSetup}
         showLanding={showLanding}
         tab={tab}
-        setTab={(t) => {
-          if (t === "timeline") preloadTimeline();
-          setTab(t);
-        }}
+        setTab={setActiveTab}
         onReset={handleReset}
         onMethodology={() => setMethodologyOpen(true)}
         presenterActive={presenterActive}
+        walkthroughActive={walkthroughActive}
+        onStartWalkthrough={handleStartWalkthrough}
       />
 
       <main
         className={`mx-auto w-full px-4 sm:px-6 ${
           showLanding
-            ? "flex min-h-[calc(100vh-3.5rem)] max-w-6xl items-center pb-12 pt-8"
-            : "max-w-5xl pb-28 pt-6"
+            ? "flex min-h-[calc(100vh-3.5rem)] max-w-6xl items-stretch pb-10 pt-6"
+            : "max-w-6xl pb-8 pt-4"
         }`}
       >
+        {!showLanding && walkthroughActive && (
+          <WalkthroughRail
+            steps={WALKTHROUGH_STEPS}
+            currentIndex={walkthroughIndex}
+            collapsed={walkthroughCollapsed}
+            onStepChange={setSafeWalkthroughIndex}
+            onToggleCollapsed={() => setWalkthroughCollapsed((v) => !v)}
+            onClose={() => setWalkthroughActive(false)}
+          />
+        )}
+
         {showLanding ? (
           <Hero
-            onStart={handleStartDemo}
+            onStart={handleStartWalkthrough}
             onMethodology={() => setMethodologyOpen(true)}
             onConfigure={() => setShowHero(false)}
           />
@@ -141,41 +215,52 @@ export default function App() {
 
 function ChartLoading() {
   return (
-    <div className="surface-card rounded-xl p-12 text-center text-sm text-muted">
-      Loading chart…
+    <div className="surface-card rounded-lg p-12 text-center text-sm text-muted">
+      Loading chart...
     </div>
   );
 }
 
-function Header({ exp, inSetup, showLanding, tab, setTab, onReset, onMethodology, presenterActive }) {
+function Header({
+  exp,
+  inSetup,
+  showLanding,
+  tab,
+  setTab,
+  onReset,
+  onMethodology,
+  presenterActive,
+  walkthroughActive,
+  onStartWalkthrough,
+}) {
   const { experiment, metric, history } = exp;
   const generation = experiment.currentGeneration;
-  const maxW = showLanding ? "max-w-6xl" : "max-w-5xl";
+  const maxW = showLanding ? "max-w-6xl" : "max-w-6xl";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-edge bg-surface/95 backdrop-blur-sm">
-      <div className={`mx-auto flex w-full ${maxW} items-center justify-between gap-4 px-4 py-3 sm:px-6`}>
-        <div className="flex items-center gap-3">
-          <LogoMark size={24} />
-          <div className="leading-tight">
+    <header className="sticky top-0 z-30 border-b border-edge bg-surface">
+      <div className={`mx-auto flex w-full ${maxW} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
+        <div className="flex min-w-0 items-center gap-3">
+          <LogoMark size={26} />
+          <div className="min-w-0 leading-tight">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight text-ink">beagle</span>
+              <span className="text-sm font-semibold text-ink">beagle</span>
               <span className="hidden text-[11px] text-muted sm:inline">
-                · experimentation
+                / experimentation
               </span>
             </div>
             {!inSetup && (
-              <div className="text-[11px] text-muted">
-                {experiment.name} · {metric.short}
+              <div className="truncate text-[11px] text-muted">
+                {experiment.name} / {metric.short}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {!inSetup && (
             <>
-              <div className="hidden items-center gap-3 rounded-lg border border-edge bg-surface-2 px-3 py-1.5 text-xs sm:flex">
+              <div className="hidden items-center gap-3 rounded-lg border border-edge bg-surface-2 px-3 py-1.5 text-xs lg:flex">
                 <Stat k="Gen" v={generation} />
                 <span className="h-3.5 w-px bg-edge" />
                 <Stat k="Rounds" v={history.length} />
@@ -183,47 +268,60 @@ function Header({ exp, inSetup, showLanding, tab, setTab, onReset, onMethodology
 
               <div className="flex rounded-lg border border-edge bg-surface-2 p-0.5">
                 <TabBtn active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
-                  Live
+                  <Activity size={14} />
+                  <span className="hidden sm:inline">Live</span>
                 </TabBtn>
                 <TabBtn active={tab === "timeline"} onClick={() => setTab("timeline")}>
-                  Lineage
+                  <GitBranch size={14} />
+                  <span className="hidden sm:inline">Lineage</span>
                   {history.length > 0 && (
-                    <span className="ml-1 rounded bg-edge px-1.5 text-[10px] font-medium text-muted">
+                    <span className="rounded bg-edge px-1.5 text-[10px] font-medium text-muted">
                       {history.length}
                     </span>
                   )}
                 </TabBtn>
               </div>
+
+              {!walkthroughActive && (
+                <button
+                  type="button"
+                  onClick={onStartWalkthrough}
+                  className="hidden items-center gap-1.5 rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-2 hover:text-ink sm:inline-flex"
+                  title="Start walkthrough"
+                >
+                  <Map size={14} />
+                  Walkthrough
+                </button>
+              )}
             </>
           )}
 
           {!showLanding && (
             <button
+              type="button"
               onClick={onMethodology}
-              className="rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-ink"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-edge bg-surface px-2.5 text-xs text-muted hover:bg-surface-2 hover:text-ink sm:px-3"
               title="Methodology (M)"
             >
-              Methodology
+              <BookOpen size={14} />
+              <span className="hidden sm:inline">Methodology</span>
             </button>
           )}
 
           {!inSetup && (
             <button
+              type="button"
               onClick={onReset}
-              className="rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-ink"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-edge bg-surface px-2.5 text-xs text-muted hover:bg-surface-2 hover:text-ink sm:px-3"
               title="Reset demo (R)"
             >
-              Reset demo
+              <RotateCcw size={14} />
+              <span className="hidden sm:inline">Reset</span>
             </button>
           )}
         </div>
       </div>
 
-      {presenterActive && (
-        <div className="hidden border-t border-edge bg-surface-2/80 px-4 py-1 text-center text-[10px] text-muted sm:block">
-          Shortcuts: Space autoplay · D decide · V live · L lineage · M methodology · R reset
-        </div>
-      )}
     </header>
   );
 }
@@ -231,8 +329,9 @@ function Header({ exp, inSetup, showLanding, tab, setTab, onReset, onMethodology
 function TabBtn({ active, onClick, children }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+      className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium ${
         active ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
       }`}
     >

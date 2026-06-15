@@ -4,8 +4,8 @@
 // Chooses how the next challenger variant is produced:
 //   - mode "simulated" (default): the local stub in engine.js.
 //   - mode "ai": POST to the serverless proxy (api/propose-challenger.js),
-//     which calls a real LLM with the server-side key. Any failure — no key,
-//     network error, timeout, bad output — silently falls back to the stub so
+//     which calls a real LLM with the server-side key. Any failure - no key,
+//     network error, timeout, bad output - silently falls back to the stub so
 //     the demo never breaks in front of a room.
 
 import { proposeChallenger, normalizeConfig } from "./engine.js";

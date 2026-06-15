@@ -1,39 +1,37 @@
-# Capturing assets for the pitch deck
+# Capturing Assets for the Pitch Deck
 
-The app uses a **warm light stone** UI. Captures look best on white or light gray slides.
+The app now uses a crisp light SaaS palette. Captures work best on white or very light gray slides.
 
 ## Setup
 
-- Window **1440 × 900** (or fullscreen 16:9), zoom **100%**
+- Window 1440 x 900, zoom 100%
+- Also check a mobile-width capture around 390 x 844 if the deck needs responsive proof
 - Hide bookmarks bar and browser extensions
-- Load `http://localhost:5173/?demo=1` (or your production URL)
+- Use `http://localhost:5173/` locally or your production URL
 
-## Shots (deck order)
+## Shots in Deck Order
 
-1. **Landing / hero** — `https://YOUR_DOMAIN/` without query params. beagle wordmark, “Open populated demo” CTA.
+1. **Hero** - `/`. Capture the large beagle brand signal, headline, Start walkthrough CTA, and product stage.
+2. **Walkthrough start** - `?walkthrough=1`. Capture the rail on Step 1 with the live dashboard visible underneath.
+3. **Live dashboard** - Step 3 or Live tab. Show generation 9, the iteration rail, champion/challenger cards, and the compact controls.
+4. **Decision moment** - Fill the window or use autoplay, then capture the decision-ready banner before clicking Decide & evolve.
+5. **Post-decision** - Click Decide & evolve and capture the winner banner plus the new challenger rationale.
+6. **Lineage proof** - Walkthrough Step 5 or Lineage tab. Capture the chart and generation records.
+7. **Methodology** - Walkthrough Step 6 or header Methodology. Capture Implemented, Simulated, and Roadmap sections.
+8. **Variant gallery** - Configure from the hero, then scroll to the gallery if a setup slide is needed.
 
-2. **Live dashboard (gen 9)** — `?demo=1`. Two side-by-side menu previews (underline champion vs pills challenger), config chips, improvement strip (~+81% since launch), confidence meter.
+## GIF Option
 
-3. **Lineage chart** — Lineage tab. Forest-green line, “+X% since G1” badge, eight generation rows visible.
+Record 25-35 seconds of `?present=1`: the populated demo loads, 1x autoplay visibly fills generation 9, the round decides, and the next generation appears. Trim tightly and loop.
 
-4. **Lineage detail** — Crop one row showing Won / Lost / Next challenger with rationale text.
+## Autoplay Timing
 
-5. **Decision moment** — After **Autoplay** at 4× (or `?present=1`), capture the decision banner + new challenger rationale on the B card.
+Generation 9 starts earlier in its sample window. In present mode at 1x, the first decision is intentionally slower so the iteration and progress changes are visible.
 
-6. **Methodology modal** — Header → Methodology. “Implemented / Simulated / Roadmap” sections.
+## OG / Link Preview Asset
 
-7. **Variant gallery** — Configure new experiment → scroll to 8-card gallery.
+`public/og-image.png` is the 1200 x 630 link preview image. Regenerate it if branding changes, and set `VITE_SITE_URL` on Vercel so Slack and LinkedIn resolve the image.
 
-8. **GIF (optional, high impact)** — Record 15–20s of `?present=1`: metrics filling, round completing, decide, lineage chart tick. Trim and loop for the deck.
+## Presenter Reference
 
-## Autoplay recording tip
-
-Use `?present=1` — auto-loads populated demo and starts autoplay at 4×. Gen 9 begins at ~87% of the round window; the first cycle should **decide within ~10–15 seconds**.
-
-## OG / link preview asset
-
-`public/og-image.png` (1200×630) — used when sharing the deploy URL. Regenerate if branding changes; set `VITE_SITE_URL` on Vercel so Slack/LinkedIn resolve the image.
-
-## Presenter reference
-
-See [DEMO.md](DEMO.md) for the full live script and keyboard shortcuts.
+See [DEMO.md](DEMO.md) for the walkthrough script and keyboard shortcuts.

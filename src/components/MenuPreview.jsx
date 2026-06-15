@@ -1,3 +1,4 @@
+import { Grid2X2, Search } from "lucide-react";
 import { normalizeConfig } from "../lib/engine.js";
 
 const ITEMS = ["Home", "Products", "Pricing", "About", "Contact"];
@@ -9,79 +10,87 @@ const JUSTIFY = {
 };
 
 const SPACING = {
-  compact: "gap-0.5",
-  comfortable: "gap-1.5",
+  compact: "gap-1",
+  comfortable: "gap-2",
   loose: "gap-3",
 };
 
 const ITEM_PAD = {
-  compact: "px-1.5 py-0.5",
+  compact: "px-1.5 py-1",
   comfortable: "px-2 py-1",
   loose: "px-2.5 py-1.5",
 };
 
 function NavIcon({ size = 12 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" className="opacity-50">
-      <rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor" />
-      <rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor" />
-      <rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor" />
-      <rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor" />
-    </svg>
-  );
+  return <Grid2X2 size={size} strokeWidth={2} className="opacity-55" />;
 }
 
-function itemClass(navStyle, weight, hero) {
+function itemClass(navStyle, weight) {
   const w = weight === "bold" ? "font-semibold" : "font-normal";
-  if (navStyle === "pills")
-    return `rounded-md ${hero ? "bg-[#eceae6]" : "bg-[#e8e4dc]"} ${w}`;
-  if (navStyle === "underline")
-    return `border-b-2 border-[#3a5248] pb-0.5 ${w}`;
-  return w;
+  if (navStyle === "pills") {
+    return `rounded-md border border-accent/20 bg-accent/10 text-accent ${w}`;
+  }
+  if (navStyle === "underline") {
+    return `border-b-2 border-accent text-accent ${w}`;
+  }
+  return `${w} text-ink`;
 }
 
 export default function MenuPreview({ config, variant = "default" }) {
   const hero = variant === "hero";
+  const compact = variant === "compact";
   const c = normalizeConfig(config);
   const justify = JUSTIFY[c.align] ?? "justify-start";
   const gap = SPACING[c.spacing] ?? SPACING.comfortable;
   const pad = ITEM_PAD[c.spacing] ?? ITEM_PAD.comfortable;
-  const navSize = hero ? "text-[13px]" : "text-[12px]";
+  const navSize = hero ? "text-[12px] sm:text-[13px]" : "text-[12px]";
 
   const frameCls = hero
-    ? "hero-preview-frame overflow-hidden rounded-lg"
-    : "overflow-hidden rounded-lg border border-[#d4cfc6] bg-[#f0ece6] shadow-sm";
-
-  const chromeBorder = hero ? "border-[#e2e0dc]" : "border-[#d4cfc6]";
-  const barBg = hero ? "bg-[#f5f4f2]" : "bg-[#e8e4dc]";
-  const surfaceBg = hero ? "bg-white" : "bg-[#f0ece6]";
-  const bodyBg = hero ? "bg-[#faf9f7]" : "bg-[#e8e4dc]";
+    ? "min-h-[18rem] overflow-hidden rounded-lg border border-edge bg-white shadow-sm"
+    : compact
+      ? "min-h-[12rem] overflow-hidden rounded-lg border border-edge bg-white shadow-sm"
+      : "min-h-[13rem] overflow-hidden rounded-lg border border-edge bg-white shadow-sm";
 
   return (
     <div className={frameCls}>
-      <div className={`flex items-center gap-2 border-b ${chromeBorder} ${barBg} px-3 py-2`}>
+      <div className={`flex items-center gap-2 border-b border-edge bg-surface-2 px-3 ${compact ? "py-1.5" : "py-2"}`}>
         <div className="flex gap-1">
-          <span className={`h-2 w-2 rounded-full ${hero ? "bg-[#ddd9d4]" : "bg-[#d4cfc6]"}`} />
-          <span className={`h-2 w-2 rounded-full ${hero ? "bg-[#ddd9d4]" : "bg-[#d4cfc6]"}`} />
-          <span className={`h-2 w-2 rounded-full ${hero ? "bg-[#ddd9d4]" : "bg-[#d4cfc6]"}`} />
+          <span className="h-2 w-2 rounded-full bg-edge" />
+          <span className="h-2 w-2 rounded-full bg-edge" />
+          <span className="h-2 w-2 rounded-full bg-edge" />
         </div>
-        <div
-          className={`ml-1 flex-1 rounded-md border ${chromeBorder} ${surfaceBg} px-2 py-0.5 text-[10px] text-[#7a756e]`}
-        >
-          acme-software.com
+        <div className="ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-edge bg-surface px-2 py-1 text-[10px] text-muted">
+          <Search size={11} />
+          <span className="truncate">acme-software.com/navigation</span>
         </div>
       </div>
 
-      <div className={`border-b ${chromeBorder} ${surfaceBg} px-4 ${hero ? "py-2" : "py-2.5"}`}>
-        <div className={`flex items-center gap-2 ${hero ? "mb-1.5" : "mb-2"}`}>
-          <div className="h-4 w-4 rounded bg-[#3a5248]" />
-          <span className="text-[11px] font-semibold text-[#1c1b19]">Acme</span>
+      <div className={`border-b border-edge bg-surface px-3 ${compact ? "py-2" : "py-3"}`}>
+        <div className={`${compact ? "mb-2" : "mb-3"} flex items-center justify-between gap-3`}>
+          <div className="flex items-center gap-2">
+            <div className="grid h-5 w-5 place-items-center rounded-md bg-accent text-[10px] font-semibold text-white">
+              A
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-ink">Acme</div>
+              {!compact && (
+                <div className="text-[10px] text-muted">Customer workspace</div>
+              )}
+            </div>
+          </div>
+          <div className="hidden rounded-md border border-edge bg-surface-2 px-2 py-1 text-[10px] font-medium text-muted lg:block">
+            Live variant
+          </div>
         </div>
+
         <nav className={`flex flex-wrap items-center ${gap} ${justify}`}>
           {ITEMS.map((label) => (
             <span
               key={label}
-              className={`flex items-center gap-1 ${navSize} text-[#3d3a36] ${pad} ${itemClass(c.navStyle, c.weight, hero)}`}
+              className={`inline-flex whitespace-nowrap items-center gap-1 ${navSize} ${pad} ${itemClass(
+                c.navStyle,
+                c.weight
+              )}`}
             >
               {c.icon && <NavIcon size={hero ? 13 : 12} />}
               {label}
@@ -90,22 +99,55 @@ export default function MenuPreview({ config, variant = "default" }) {
         </nav>
       </div>
 
-      <div className={`space-y-2 ${bodyBg} px-4 ${hero ? "py-3" : "py-4"}`}>
-        <div className={`h-2 w-3/5 rounded-sm ${hero ? "bg-[#e8e6e2]" : "bg-[#d4cfc6]"}`} />
-        <div className={`h-2 w-2/5 rounded-sm ${hero ? "bg-[#eceae6]" : "bg-[#d9d4cc]"}`} />
-        {!hero && (
-          <>
-            <p className="pt-1 text-[10px] leading-relaxed text-[#7a756e]">
-              Visitors land here and use the navigation to find what they need.
-            </p>
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              <div className="h-10 rounded border border-[#d4cfc6] bg-[#f0ece6]" />
-              <div className="h-10 rounded border border-[#d4cfc6] bg-[#f0ece6]" />
-              <div className="h-10 rounded border border-[#d4cfc6] bg-[#f0ece6]" />
+      <div className={`bg-[#f7f9fa] px-3 ${compact ? "py-3" : "py-4"}`}>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="min-w-0 flex-1">
+            <div className="h-2 w-3/5 rounded-sm bg-[#d9e1e5]" />
+            <div className="mt-1.5 h-2 w-4/5 rounded-sm bg-[#e4eaed]" />
+            <div className="mt-1.5 h-2 w-2/5 rounded-sm bg-[#e4eaed]" />
+            <div className={`${compact ? "mt-3" : "mt-4"} flex gap-2`}>
+              <div className={`${compact ? "h-6 w-16" : "h-8 w-20"} rounded-md bg-accent`} />
+              <div className={`${compact ? "h-6 w-12" : "h-8 w-16"} rounded-md border border-edge bg-white`} />
             </div>
-          </>
+          </div>
+          <div className={`grid w-full grid-cols-3 gap-1.5 sm:w-28`}>
+            <PreviewTile hot={c.navStyle === "pills"} />
+            <PreviewTile hot={c.align === "center"} />
+            <PreviewTile hot={c.icon} />
+            <PreviewTile hot={c.weight === "bold"} />
+            <PreviewTile hot={c.spacing === "loose"} />
+            <PreviewTile hot={c.navStyle === "underline"} />
+          </div>
+        </div>
+
+        {!hero && !compact && (
+          <div className="mt-4 rounded-lg border border-edge bg-white p-3">
+            <div className="mb-2 flex items-center justify-between text-[10px] text-muted">
+              <span>Observed click path</span>
+              <span className="font-semibold tabular-nums text-accent">sample</span>
+            </div>
+            <div className="flex h-9 items-end gap-1">
+              {[38, 52, 46, 68, 58, 74, 62].map((h, i) => (
+                <span
+                  key={i}
+                  className="flex-1 rounded-sm bg-accent/25"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function PreviewTile({ hot }) {
+  return (
+    <div
+      className={`h-8 rounded-md border ${
+        hot ? "border-accent/25 bg-accent/15" : "border-edge bg-white"
+      }`}
+    />
   );
 }

@@ -61,5 +61,7 @@ export function readDemoParams() {
   return {
     autoDemo: params.get("demo") === "1" || params.get("demo") === "true",
     present: params.get("present") === "1" || params.get("present") === "true",
+    walkthrough:
+      params.get("walkthrough") === "1" || params.get("walkthrough") === "true",
   };
 }

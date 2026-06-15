@@ -1,56 +1,63 @@
-# beagle — navigate your UI to what works
+# beagle - autonomous UI experimentation
 
-**beagle** runs continuous, automated A/B testing on a website's UI and improves it over generations with no human in the loop. You state what to optimize; the tool runs test → measure → decide → evolve on repeat until the design converges on better performance.
+**beagle** runs continuous, automated A/B tests on a website UI and improves it over generations. You choose the goal metric; the tool tests, measures, decides, and evolves the next challenger.
 
-This repository is the **interactive demo**: simulated traffic, optional LLM evolution, and a pre-populated experiment (8 completed rounds + generation 9 in progress).
+This repository is the interactive pitch demo: simulated traffic, optional LLM evolution, a pre-populated experiment with 8 completed rounds, and generation 9 ready to finish live.
 
-## Quick start (local)
+## Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173/?demo=1` to skip the landing page and load the populated demo directly.
+Open `http://localhost:5173/` for the new hero and walkthrough CTA.
 
-## Show the demo
+## Demo URLs
+
+| URL | Behavior |
+| --- | --- |
+| `/` | Landing hero with Start walkthrough, Configure, and Methodology actions |
+| `/?walkthrough=1` | Loads the populated demo with the guided walkthrough rail collapsed |
+| `/?demo=1` | Preserves the existing direct populated demo/autoplay behavior |
+| `/?present=1` | Presenter mode: populated demo, autoplay 1x, walkthrough rail collapsed |
+
+## Show the Demo
 
 | Resource | Purpose |
-|----------|---------|
-| [DEMO.md](DEMO.md) | 5-minute presenter script, shortcuts, failure paths |
-| [CAPTURE.md](CAPTURE.md) | Screenshot / GIF checklist for your pitch deck |
-| [DEPLOY.md](DEPLOY.md) | Vercel deploy, env vars, share URLs |
+| --- | --- |
+| [DEMO.md](DEMO.md) | Presenter script, walkthrough beats, shortcuts, failure paths |
+| [CAPTURE.md](CAPTURE.md) | Screenshot and GIF checklist for the pitch deck |
+| [DEPLOY.md](DEPLOY.md) | Vercel deploy, environment variables, share URLs |
 
-**Share URL for firms:** `https://YOUR_DOMAIN/?demo=1`  
-**Present mode (autoplay 4×):** `?present=1`
+Keyboard shortcuts while an experiment is running: **Space** autoplay, **D** decide, **V** live, **L** lineage, **M** methodology, **R** reset demo.
 
-## Demo flow
+## Demo Flow
 
-1. **`?demo=1`** — populated experiment: generation 9 live, 8 rounds in lineage, CTR ~38% → 69%.
-2. **Live** — two variants with real rendered menu previews; config chips show align, weight, icons, spacing, style.
-3. **Autoplay** — finishes the round, decides winner, breeds next challenger (best at 4×).
-4. **Lineage** — chart + per-generation winners, losers, rationales.
-5. **Methodology** — honest disclosure of what's simulated vs real.
+1. Start from `/` or `/?walkthrough=1`.
+2. Use the walkthrough rail: promise, evolution, live generation 9, decision moment, lineage proof, methodology.
+3. On Live, use the iteration rail to show the metric path from G1 through the current live generation.
+4. Compare champion vs challenger, start 1x Autoplay, then Decide & evolve to create the next generation.
+5. Switch to Lineage to show the chart, winning configs, losing configs, rationales, and next challenger mutations.
 
-Keyboard shortcuts (when experiment is running): **Space** autoplay · **D** decide · **V** live · **L** lineage · **M** methodology · **R** reset demo.
+## Configure a Fresh Experiment
 
-## Configure a fresh experiment
+From the landing page: **Configure** -> name the experiment, choose a goal metric, review the variant gallery, then **Start fresh experiment**.
 
-From the landing page: **Configure new experiment** → name, goal metric, variant gallery → **Start fresh experiment**.
-
-## Tech stack
+## Tech Stack
 
 - React + Vite + Tailwind CSS v4
-- Recharts (lineage chart, lazy-loaded)
-- Vercel serverless function for optional LLM (`api/propose-challenger.js`)
+- lucide-react icons
+- Recharts for the lazy-loaded lineage chart
+- Vercel serverless function for optional LLM challenger proposals
 
-## Environment variables
+## Environment Variables
 
 See [.env.example](.env.example). Key vars:
 
-- `VITE_SITE_URL` — absolute URL for link previews (set on Vercel)
-- `LLM_API_KEY` — optional; enables AI evolution mode
+- `VITE_SITE_URL` - absolute URL for link previews on Vercel
+- `LLM_API_KEY` - optional; enables AI evolution mode
 
-## Explicitly out of scope (demo)
+## Explicitly Out of Scope
 
-Real site embed, real traffic, statistical rigor (sequential testing, bandits), and open-ended LLM-generated UI beyond the constrained design space.
+Real site embed, real traffic, production statistical rigor, and open-ended LLM-generated UI beyond the constrained design space.

@@ -1,59 +1,68 @@
-# Live demo script (5 minutes)
+# Live Demo Script
 
-Use this when showing **beagle** to firms. The populated demo is the default story — eight rounds already decided, generation 9 in progress.
+Use this when showing **beagle** in a meeting. The recommended flow is the guided walkthrough: eight rounds already decided, generation 9 in progress, then a live decision and lineage proof.
 
 ## Links
 
 | Use case | URL |
-|----------|-----|
-| **Pitch / email** (auto-loads demo) | `https://YOUR_DOMAIN/?demo=1` |
-| **Present mode** (demo + autoplay 4×) | `https://YOUR_DOMAIN/?present=1` |
-| Landing (choose path) | `https://YOUR_DOMAIN/` |
+| --- | --- |
+| Guided pitch walkthrough | `https://YOUR_DOMAIN/?walkthrough=1` |
+| Landing hero | `https://YOUR_DOMAIN/` |
+| Legacy direct demo | `https://YOUR_DOMAIN/?demo=1` |
+| Present mode | `https://YOUR_DOMAIN/?present=1` |
 
-Replace `YOUR_DOMAIN` with your Vercel production URL (see [DEPLOY.md](DEPLOY.md)).
+`?present=1` loads the populated demo, starts autoplay at 1x, and keeps the walkthrough rail collapsed by default.
 
-## Before the meeting
+## Before the Meeting
 
-1. Open `?demo=1` once on the presentation machine — confirm chart loads on **Lineage**.
-2. Browser zoom **100%**, hide bookmarks bar.
-3. Optional offline backup: `npm run build && npm run preview` on your laptop.
-4. If using **AI** evolution: verify green dot on the toggle (requires `LLM_API_KEY` on Vercel).
+1. Open `?walkthrough=1` once on the presentation machine and confirm the rail appears.
+2. Click the Lineage step once so the lazy chart chunk loads.
+3. Browser zoom 100%, hide bookmarks bar.
+4. Optional offline backup: `npm run build && npm run preview`.
+5. If using AI evolution, verify the AI toggle dot is green. Without `LLM_API_KEY`, stay on Simulated.
 
-## 5-minute script
+## 5-Minute Flow
 
 | Time | Do | Say |
-|------|-----|-----|
-| **0:00** | Open `?demo=1` — lands on **Live**, generation 9 | “The product is already mid-experiment: eight rounds completed with no human picking designs.” |
-| **0:30** | Point at **two side-by-side previews** + config chips | “These are real UI variants — alignment, weight, icons, spacing, nav style — not abstract scores.” |
-| **1:00** | **Lineage** tab — chart + eight rows | “CTR climbed from about 38% to 69% across generations. Each row shows what won, what lost, and what challenger was bred next.” |
-| **1:30** | **+X% improved since launch** strip on Live | “One headline number for the business outcome.” |
-| **2:00** | Back to **Live** → **Autoplay** at **4×** (or use `?present=1`) | “Watch it finish this round, pick a winner, and evolve the next challenger — fully automated.” |
-| **3:00** | Pause autoplay when decision banner appears | “Winner carries forward; new challenger mutates one design dimension with a stated rationale.” |
-| **3:30** | **Methodology** (header or **M** key) | “Traffic is simulated for the demo; the loop, rendering, and lineage are real. Here’s the roadmap for statistical rigor and production embed.” |
-| **4:30** | Optional: **Evolution → AI** toggle (only if configured) | “Same loop — a model can propose challengers when the API is wired; it falls back safely if not.” |
+| --- | --- | --- |
+| 0:00 | Open `/` or `?walkthrough=1` | "beagle turns UI testing into a loop: test, measure, decide, evolve." |
+| 0:30 | Step 1: Promise | "This is not a static A/B test. The system keeps generating the next challenger from what just won." |
+| 1:00 | Step 2: Evolution | "The iteration rail shows every generation, so we can show the path, not just the result." |
+| 1:30 | Step 3: Live G9 | "Generation 9 is running now. The champion is defending against a generated challenger." |
+| 2:15 | Use 1x Autoplay | "The round window fills slowly enough to watch the live generation move." |
+| 3:00 | Click Decide & evolve | "The winner is recorded and generation 10 is created from that winning interface." |
+| 3:30 | Step 5: Lineage | "Every generation leaves proof: metric, winner, loser, mutation, and rationale." |
+| 4:30 | Step 6: Methodology | "Traffic is simulated for speed. The loop, rendering, lineage, and optional AI proposal path are real." |
 
-## Keyboard shortcuts (presenter)
+## Keyboard Shortcuts
 
 | Key | Action |
-|-----|--------|
-| **Space** | Toggle autoplay |
-| **D** | Decide & evolve |
-| **V** | Live tab |
-| **L** | Lineage tab |
-| **M** | Methodology modal |
-| **R** | Reset demo (reloads populated state) |
+| --- | --- |
+| Space | Toggle autoplay |
+| D | Decide & evolve |
+| V | Live tab |
+| L | Lineage tab |
+| M | Methodology modal |
+| R | Reset demo to populated state |
 
-## Failure paths
+## Presenter Notes
+
+- The walkthrough rail only changes views and opens methodology. It does not decide rounds for you.
+- Use `?present=1` for a slower hands-off recording or conference monitor loop.
+- Use the header Walkthrough button if you opened `?demo=1` and want the guided rail.
+- Reset demo restores generation 9 with the completed lineage intact.
+
+## Failure Paths
 
 | Problem | Fix |
-|---------|-----|
-| Lineage chart empty | You started a **fresh** experiment — click **Reset demo** or reopen `?demo=1`. |
-| Autoplay seems stuck | Click **Fill window** then **Decide & evolve**, or press **D**. |
-| No Wi‑Fi | Run `npm run preview` locally from a pre-built `dist/`. |
-| AI toggle gray / no green dot | Expected without `LLM_API_KEY` — stay on **Simulated**; do not promise live LLM. |
-| Second meeting same tab | **Reset demo** reloads generation 9 with history intact (does not wipe to hero). |
+| --- | --- |
+| Lineage chart empty | You started a fresh experiment. Click Reset demo or reopen `?walkthrough=1`. |
+| Autoplay seems stuck | Click Fill window, then Decide & evolve, or press D. |
+| No network | Run `npm run preview` locally from a pre-built `dist/`. |
+| AI toggle gray | Expected without `LLM_API_KEY`; stay on Simulated. |
+| Meeting starts on the wrong step | Use the walkthrough rail buttons or reopen `?walkthrough=1`. |
 
-## After the meeting
+## After the Meeting
 
-- **Reset demo** (header) restores the populated state for the next audience.
-- Capture updated screenshots per [CAPTURE.md](CAPTURE.md) if the UI changed.
+- Click Reset demo before the next audience.
+- Capture updated deck assets using [CAPTURE.md](CAPTURE.md).

@@ -77,7 +77,7 @@ export function useExperiment() {
     [variants, stats, goal, leaderId]
   );
 
-  // Headline "how much better is the site now than at launch" — direction-aware
+  // Headline "how much better is the site now than at launch" - direction-aware
   // so a positive percentage always means improvement.
   const improvement = useMemo(() => {
     if (history.length < 1) return null;

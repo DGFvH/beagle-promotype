@@ -7,12 +7,12 @@ import { useEffect, useRef, useState } from "react";
 // We read the latest experiment state through a ref so the interval callback
 // never closes over stale values, and a busy flag prevents overlapping decides.
 
-const TICK_MS = 280;
-const BASE_BATCH = 65; // visitors per tick at 1x
+const TICK_MS = 900;
+const BASE_BATCH = 20; // visitors per tick at 1x
 
 export function useAutoplay(exp) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(2);
+  const [speed, setSpeed] = useState(1);
 
   const latest = useRef(exp);
   latest.current = exp;
@@ -30,7 +30,7 @@ export function useAutoplay(exp) {
         const batch = Math.round(BASE_BATCH * speed);
         s.simulate(batch);
       } else {
-        // Round window is full — decide and evolve, then continue next tick.
+        // Round window is full - decide and evolve, then continue next tick.
         busy.current = true;
         try {
           await s.decide();

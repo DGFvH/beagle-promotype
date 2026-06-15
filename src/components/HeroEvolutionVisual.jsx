@@ -1,3 +1,4 @@
+import { ArrowRight, GitBranch, TrendingUp } from "lucide-react";
 import { HERO_EVOLUTION } from "../lib/demoSeed.js";
 import MenuPreview from "./MenuPreview.jsx";
 
@@ -5,57 +6,78 @@ export default function HeroEvolutionVisual() {
   const { before, after, delta } = HERO_EVOLUTION;
 
   return (
-    <div className="relative">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <PreviewPanel side={before} />
-        <PreviewPanel side={after} highlight />
+    <div className="hero-product-frame overflow-hidden rounded-lg border border-edge bg-surface shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge bg-surface-2 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-md bg-accent text-white">
+            <GitBranch size={16} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-ink">Primary navigation menu</div>
+            <div className="text-[11px] text-muted">Populated demo / generation 9 ready</div>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-md border border-win/25 bg-win/10 px-3 py-1.5 text-xs font-semibold text-win">
+          <TrendingUp size={14} />
+          {delta} CTR lift
+        </div>
       </div>
 
-      <div
-        className="absolute left-1/2 top-[42%] z-10 hidden -translate-x-1/2 -translate-y-1/2 sm:flex"
-        aria-hidden
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-edge bg-surface text-muted shadow-sm">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M3 7h8M8 4l3 3-3 3"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </div>
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_15rem]">
+        <div className="grid gap-4 border-b border-edge p-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:border-b-0 lg:border-r">
+          <PreviewPanel side={before} label="Baseline" />
+          <div className="hidden items-center justify-center text-muted sm:flex">
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-edge bg-surface">
+              <ArrowRight size={18} />
+            </span>
+          </div>
+          <PreviewPanel side={after} label="Current champion" highlight />
+        </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <span className="rounded-full border border-edge bg-surface px-3 py-1 text-xs font-semibold tabular-nums text-win">
-          {delta} CTR
-        </span>
-        <span className="text-xs text-muted">
-          8 rounds decided · generation 9 ready in the live demo
-        </span>
+        <div className="grid gap-3 bg-surface px-4 py-4 sm:grid-cols-3 lg:grid-cols-1">
+          <StageMetric label="Rounds decided" value="8" />
+          <StageMetric label="Live round" value="G9" />
+          <StageMetric label="Next action" value="Decide" accent />
+        </div>
       </div>
     </div>
   );
 }
 
-function PreviewPanel({ side, highlight = false }) {
+function PreviewPanel({ side, label, highlight = false }) {
   return (
     <div className="min-w-0">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-muted">
-          Generation {side.generation}
-        </span>
+        <div>
+          <div className="text-[11px] font-semibold text-muted">{label}</div>
+          <div className="text-xs font-semibold text-ink">Generation {side.generation}</div>
+        </div>
         <span
-          className={`text-[11px] font-semibold tabular-nums ${
-            highlight ? "text-win" : "text-ink"
+          className={`rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums ${
+            highlight
+              ? "border-win/25 bg-win/10 text-win"
+              : "border-edge bg-surface-2 text-muted"
           }`}
         >
           {side.metricLabel}
         </span>
       </div>
       <MenuPreview config={side.config} variant="hero" />
+    </div>
+  );
+}
+
+function StageMetric({ label, value, accent = false }) {
+  return (
+    <div className="rounded-lg border border-edge bg-surface-2 px-3 py-3">
+      <div className="text-[11px] font-medium text-muted">{label}</div>
+      <div
+        className={`mt-1 text-2xl font-semibold tabular-nums ${
+          accent ? "text-accent" : "text-ink"
+        }`}
+      >
+        {value}
+      </div>
     </div>
   );
 }

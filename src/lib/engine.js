@@ -285,11 +285,11 @@ export function describeMutation(parent, child) {
   const ch = normalizeConfig(child);
   if (!parent) return "Initial control";
   const diffs = [];
-  if (p.align !== ch.align) diffs.push(`align → ${ch.align}`);
-  if (p.weight !== ch.weight) diffs.push(`weight → ${ch.weight}`);
+  if (p.align !== ch.align) diffs.push(`align -> ${ch.align}`);
+  if (p.weight !== ch.weight) diffs.push(`weight -> ${ch.weight}`);
   if (p.icon !== ch.icon) diffs.push(ch.icon ? "added icons" : "removed icons");
-  if (p.spacing !== ch.spacing) diffs.push(`spacing → ${ch.spacing}`);
-  if (p.navStyle !== ch.navStyle) diffs.push(`navStyle → ${ch.navStyle}`);
+  if (p.spacing !== ch.spacing) diffs.push(`spacing -> ${ch.spacing}`);
+  if (p.navStyle !== ch.navStyle) diffs.push(`navStyle -> ${ch.navStyle}`);
   return diffs.length ? diffs.join(", ") : "no change";
 }
 

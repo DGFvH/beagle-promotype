@@ -18,15 +18,19 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
 
   const handleStart = async () => {
     setBusy(true);
-    await onStart({ name, goalMetric: metric });
+    try {
+      await onStart({ name, goalMetric: metric });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="mx-auto max-w-4xl animate-pop">
-      <div className="surface-card rounded-xl p-6 sm:p-8">
+      <div className="rounded-lg border border-edge bg-surface p-6 shadow-sm sm:p-8">
         <h2 className="text-lg font-semibold text-ink">Configure experiment</h2>
         <p className="mt-1 text-sm text-muted">
-          Name the test and choose the metric to optimize — or browse the variant
+          Name the test and choose the metric to optimize, or browse the variant
           gallery below for the kinds of champions and challengers beagle cycles through.
         </p>
 
@@ -46,6 +50,7 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
             {Object.values(METRICS).map((m) => (
               <button
                 key={m.id}
+                type="button"
                 onClick={() => setMetric(m.id)}
                 className={`rounded-lg border p-3 text-left ${
                   metric === m.id
@@ -53,7 +58,7 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
                     : "border-edge bg-surface hover:bg-surface-2"
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium text-ink">{m.short}</span>
                   <span className="text-[10px] font-medium text-muted">
                     {m.direction === "maximize" ? "max" : "min"}
@@ -75,7 +80,7 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
 
         <div className="mt-8">
           <span className="text-xs font-medium text-muted">
-            Variant gallery — examples from the demo lineage
+            Variant gallery - examples from the demo lineage
           </span>
           <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {VARIANT_GALLERY.map((v) => (
@@ -88,11 +93,12 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
         </div>
 
         <button
+          type="button"
           onClick={handleStart}
           disabled={busy || !name.trim()}
-          className="btn-primary mt-6 w-full rounded-lg py-2.5 text-sm font-medium"
+          className="btn-primary mt-6 w-full rounded-lg py-2.5 text-sm font-semibold"
         >
-          {busy ? "Starting…" : "Start fresh experiment"}
+          {busy ? "Starting..." : "Start fresh experiment"}
         </button>
       </div>
     </div>

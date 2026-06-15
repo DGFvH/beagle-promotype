@@ -2,7 +2,7 @@ import { normalizeConfig } from "./engine.js";
 
 export { normalizeConfig };
 
-// Default navigation variant shape — every config is normalized to this.
+// Default navigation variant shape - every config is normalized to this.
 export const DEFAULT_CONFIG = {
   align: "left",
   weight: "normal",
@@ -20,7 +20,7 @@ const SEED_SCRIPT = [
     championValue: 0.38,
     challengerValue: 0.46,
     winnerIsChallenger: true,
-    mutation: "align → center",
+    mutation: "align -> center",
     rationale: "Centered navigation tested to improve scan path for first-time visitors.",
   },
   {
@@ -29,7 +29,7 @@ const SEED_SCRIPT = [
     championValue: 0.46,
     challengerValue: 0.52,
     winnerIsChallenger: true,
-    mutation: "weight → bold",
+    mutation: "weight -> bold",
     rationale: "Bolder labels to increase salience without changing layout.",
   },
   {
@@ -47,7 +47,7 @@ const SEED_SCRIPT = [
     championValue: 0.57,
     challengerValue: 0.61,
     winnerIsChallenger: true,
-    mutation: "navStyle → pills",
+    mutation: "navStyle -> pills",
     rationale: "Pill-shaped nav items to clarify click targets.",
   },
   {
@@ -56,7 +56,7 @@ const SEED_SCRIPT = [
     championValue: 0.61,
     challengerValue: 0.64,
     winnerIsChallenger: true,
-    mutation: "spacing → loose",
+    mutation: "spacing -> loose",
     rationale: "More breathing room between items to reduce mis-clicks.",
   },
   {
@@ -65,7 +65,7 @@ const SEED_SCRIPT = [
     championValue: 0.64,
     challengerValue: 0.67,
     winnerIsChallenger: true,
-    mutation: "navStyle → underline",
+    mutation: "navStyle -> underline",
     rationale: "Underline affordance tested against filled pills.",
   },
   {
@@ -74,7 +74,7 @@ const SEED_SCRIPT = [
     championValue: 0.67,
     challengerValue: 0.63,
     winnerIsChallenger: false,
-    mutation: "align → right",
+    mutation: "align -> right",
     rationale: "Right alignment probed; center retained as stronger for this audience.",
   },
   {
@@ -83,7 +83,7 @@ const SEED_SCRIPT = [
     championValue: 0.67,
     challengerValue: 0.69,
     winnerIsChallenger: true,
-    mutation: "weight → normal",
+    mutation: "weight -> normal",
     rationale: "Slightly lighter weight reduced visual noise while keeping icons.",
   },
 ];
@@ -95,12 +95,12 @@ const CURRENT_ROUND = {
   challenger: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "pills" },
   rationale: "Re-testing bold pills with tighter spacing against the reigning underline style.",
   source: "simulated",
-  // ~87% of round window filled — room for autoplay to finish + decide live
-  championStats: { visitors: 260, clicks: 190, converts: 101, times: [] },
-  challengerStats: { visitors: 260, clicks: 169, converts: 89, times: [] },
+  // Starts early enough for 1x autoplay to make the live round visibly progress.
+  championStats: { visitors: 95, clicks: 69, converts: 37, times: [] },
+  challengerStats: { visitors: 95, clicks: 62, converts: 33, times: [] },
 };
 
-// Gallery shown on setup — a spread of distinct configs from the seed lineage.
+// Gallery shown on setup - a spread of distinct configs from the seed lineage.
 export const VARIANT_GALLERY = [
   { label: "G1 control", config: SEED_SCRIPT[0].champion },
   { label: "G1 challenger", config: SEED_SCRIPT[0].challenger },
