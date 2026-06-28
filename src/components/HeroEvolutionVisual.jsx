@@ -28,7 +28,11 @@ export default function HeroEvolutionVisual() {
           </span>
           <div className="min-w-0">
             <div className="text-xs font-semibold text-ink">Your homepage hero</div>
-            <div className="text-[11px] text-muted">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted">
+              <span
+                className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-win"
+                aria-hidden
+              />
               Champion vs. Claude-proposed challenger
             </div>
           </div>

@@ -100,11 +100,59 @@ a:focus-visible,
   animation-delay: 0ms;
 }
 .hero-stagger-2 {
-  animation-delay: 80ms;
+  animation-delay: 90ms;
+}
+.hero-stagger-3 {
+  animation-delay: 160ms;
 }
 
 .hero-stage {
+  position: relative;
   min-height: calc(100vh - 6.5rem);
+}
+
+/* Soft brand glow behind the hero — decorative, sits under content. */
+.hero-stage::before {
+  content: "";
+  position: absolute;
+  top: -8rem;
+  left: -10rem;
+  width: 42rem;
+  height: 42rem;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-accent), transparent 88%),
+    transparent 70%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop {
+    animation: none;
+  }
+}
+
+/* Subtle live pulse for the "real traffic" signal in the product frame. */
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+.live-dot {
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
 }
 
 .hero-product-frame {
