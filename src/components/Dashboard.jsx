@@ -11,6 +11,8 @@ import {
 import VariantCard, { SourceBadge } from "./VariantCard.jsx";
 import ControlBar from "./ControlBar.jsx";
 import GenerationModeToggle from "./GenerationModeToggle.jsx";
+import LoopToggle from "./LoopToggle.jsx";
+import TokenPanel from "./TokenPanel.jsx";
 import { hypothesisVerdict } from "../lib/analysis.js";
 
 export default function Dashboard({ exp, auto, busy }) {
@@ -35,6 +37,10 @@ export default function Dashboard({ exp, auto, busy }) {
     aiAvailable,
     variants,
     stats,
+    loopEnabled,
+    setLoopEnabled,
+    tokenTotals,
+    tokenByRun,
   } = exp;
 
   const champion = variantViews.find((v) => v.isControl) ?? variantViews[0];
@@ -60,6 +66,8 @@ export default function Dashboard({ exp, auto, busy }) {
         generationMode={generationMode}
         setGenerationMode={setGenerationMode}
         aiAvailable={aiAvailable}
+        loopEnabled={loopEnabled}
+        setLoopEnabled={setLoopEnabled}
       />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_19rem]">
@@ -114,6 +122,9 @@ export default function Dashboard({ exp, auto, busy }) {
             speed={auto?.speed}
             setSpeed={auto?.setSpeed}
           />
+
+          {/* FR-E1: internal token-spend panel (running total + per-run). */}
+          <TokenPanel totals={tokenTotals} byRun={tokenByRun} />
         </aside>
       </div>
     </div>
@@ -129,6 +140,8 @@ function DemoHeader({
   generationMode,
   setGenerationMode,
   aiAvailable,
+  loopEnabled,
+  setLoopEnabled,
 }) {
   return (
     <section className="rounded-lg border border-edge bg-surface p-3 shadow-sm">
@@ -153,6 +166,11 @@ function DemoHeader({
               +{improvement.pct.toFixed(1)}%
             </span>
           )}
+          <LoopToggle
+            compact
+            enabled={loopEnabled}
+            setEnabled={setLoopEnabled}
+          />
           <GenerationModeToggle
             compact
             mode={generationMode}

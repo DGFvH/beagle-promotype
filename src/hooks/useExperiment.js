@@ -25,6 +25,8 @@ import {
   goLive as goLiveGate,
   isLive as gateIsLive,
 } from "../lib/approval.js";
+import { planNextAfterDecision } from "../lib/loop.js";
+import { createLedger, recordUsage, totalUsage, usageByRunList } from "../lib/tokens.js";
 
 const CONTROL_CONFIG = DEFAULT_CONFIG;
 
@@ -63,10 +65,33 @@ export function useExperiment() {
   //   seam({ proposal }) -> experimentRecord | Promise<experimentRecord>
   const goLiveSeamRef = useRef(null);
 
+  // The seeded presentation demo (startSeeded) is an explicitly-simulated, already
+  // -running showcase. It keeps the legacy "auto-evolve and keep running" behaviour
+  // so autoplay can watch the site improve across generations (/, /?walkthrough=1,
+  // /?present=1). The REAL flow (start) leaves this false, so decide() honours the
+  // FR-D4 loop toggle and FR-D1 approval gate instead of auto-advancing live.
+  const seededAutoAdvanceRef = useRef(false);
+
   // Generation mode: simulated stub (default) vs real LLM. We also probe
   // whether the AI endpoint is actually wired up so the UI can reflect it.
   const [generationMode, setGenerationMode] = useState("simulated");
   const [aiAvailable, setAiAvailable] = useState(false);
+
+  // FR-D4 — the agentic loop toggle. When ON, a decided round produces the NEXT
+  // proposed challenger, parked in the FR-D1 approval gate (awaiting_approval) —
+  // NEVER auto-live (Section 8). When OFF, decide() records the round and holds;
+  // no next proposal is generated. Visible/controllable via the UI toggle.
+  const [loopEnabled, setLoopEnabled] = useState(true);
+
+  // FR-E1 — token-spend ledger. In-memory for the MVP (Supabase persistence is a
+  // documented TODO in lib/tokens.js). Recording is non-blocking: a synchronous
+  // state append the UI never awaits (FR-E1c).
+  const [tokenLedger, setTokenLedger] = useState(() => createLedger());
+  const recordTokens = useCallback((args) => {
+    // Fire-and-forget append; functional update so it never depends on stale
+    // ledger state and never blocks the caller (FR-E1c).
+    setTokenLedger((l) => recordUsage(l, args));
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -162,6 +187,8 @@ export function useExperiment() {
     async (config) => {
       const name = config?.name ?? experiment.name;
       const metric = config?.goalMetric ?? experiment.goalMetric;
+      // Real flow: decide() obeys the FR-D4 loop toggle + FR-D1 approval gate.
+      seededAutoAdvanceRef.current = false;
 
       // FR-A2: if a real page was connected (FR-A1), use its located hero as the
       // champion baseline; otherwise the demo fixture. loadCurrentHero already
@@ -176,6 +203,14 @@ export function useExperiment() {
       });
       // First challenger is one mutation away from the control.
       const proposal = await generateChallenger(control, metric, [], generationMode);
+      // FR-E1a: record this Claude call's token usage attributable to the run.
+      // Non-blocking; `usage` is only present on a real Claude call (0 otherwise).
+      recordTokens({
+        runId: experiment.id,
+        usage: proposal.usage,
+        source: proposal.source,
+        label: "propose gen 1",
+      });
       const challenger = makeVariant({
         experimentId: experiment.id,
         generation: 1,
@@ -217,7 +252,7 @@ export function useExperiment() {
         })
       );
     },
-    [experiment.id, experiment.name, experiment.goalMetric, generationMode, currentHero]
+    [experiment.id, experiment.name, experiment.goalMetric, generationMode, currentHero, recordTokens]
   );
 
   // FR-A1/FR-A3 — record the connected source reference (after the user passes
@@ -273,6 +308,8 @@ export function useExperiment() {
   }, []);
 
   const startSeeded = useCallback(async () => {
+    // Presentation demo: keep the legacy continuous auto-advance (simulated).
+    seededAutoAdvanceRef.current = true;
     const seeded = buildDemoState({
       experimentId: experiment.id,
       name: experiment.name,
@@ -338,9 +375,39 @@ export function useExperiment() {
       })),
     };
 
-    // Evolve the next challenger from the winner (the LLM hook / orchestrator).
     const fullHistory = [...history, roundResult];
+
+    // FR-D4 — should the agentic loop advance to a next proposed test? The seeded
+    // presentation demo always advances (legacy showcase). The real flow advances
+    // only when the loop toggle is ON, and ALWAYS through the approval gate.
+    const seededDemo = seededAutoAdvanceRef.current;
+    const plan = planNextAfterDecision({ loopEnabled: seededDemo || loopEnabled });
+
+    if (!plan.advance) {
+      // Loop OFF: record the decision and HOLD. No next proposal is generated,
+      // nothing is injected, the experiment does not advance.
+      setHistory(fullHistory);
+      setLastDecision({
+        generation: gen,
+        winnerId: winner.id,
+        winnerLabel: winner.label,
+        mutation: null,
+        rationale: null,
+        source: null,
+      });
+      setExperiment((e) => ({ ...e, status: "decided" }));
+      return;
+    }
+
+    // Advancing: evolve the next challenger from the winner (the LLM hook).
     const proposal = await generateChallenger(winner, goal, fullHistory, generationMode);
+    // FR-E1a: record this Claude call's token usage attributable to the run.
+    recordTokens({
+      runId: experiment.id,
+      usage: proposal.usage,
+      source: proposal.source,
+      label: `propose gen ${gen + 1}`,
+    });
     const challengerConfig = proposal.config;
     roundResult.challengerConfig = challengerConfig;
     roundResult.mutation = describeMutation(winner.config, challengerConfig);
@@ -377,12 +444,35 @@ export function useExperiment() {
       source: proposal.source,
       model: proposal.model,
     });
-    setExperiment((e) => ({ ...e, currentGeneration: nextGen, status: "running" }));
     setVariants([champion, challenger]);
     setStats({ [champion.id]: emptyStats(), [challenger.id]: emptyStats() });
-  }, [variants, stats, goal, history, experiment.currentGeneration, experiment.id, generationMode]);
+
+    if (seededDemo) {
+      // Presentation demo: legacy auto-continue (explicitly simulated showcase).
+      setExperiment((e) => ({ ...e, currentGeneration: nextGen, status: "running" }));
+    } else {
+      // Real flow with loop ON: the next proposed test is GATED. Section 8 forbids
+      // auto-approval — route it through the FR-D1 gate (awaiting_approval) so the
+      // user must approve before anything goes live. nextStatus is asserted to be
+      // "awaiting_approval" by planNextAfterDecision.
+      setExperiment((e) => ({ ...e, currentGeneration: nextGen, status: plan.nextStatus }));
+      setApprovalGate(
+        createApprovalGate({
+          proposal: {
+            champion,
+            challenger,
+            goalMetric: goal,
+            rationale: proposal.rationale,
+            source: proposal.source,
+            hypothesis: proposal.hypothesis ?? null,
+          },
+        })
+      );
+    }
+  }, [variants, stats, goal, history, experiment.currentGeneration, experiment.id, generationMode, loopEnabled, recordTokens]);
 
   const reset = useCallback(() => {
+    seededAutoAdvanceRef.current = false;
     setExperiment((e) => ({ ...e, status: "setup", currentGeneration: 1 }));
     setVariants([]);
     setStats({});
@@ -428,6 +518,13 @@ export function useExperiment() {
     generationMode,
     setGenerationMode,
     aiAvailable,
+    // FR-D4 agentic-loop toggle (still approval-gated — Section 8)
+    loopEnabled,
+    setLoopEnabled,
+    // FR-E1 token-spend ledger (in-memory; running total + per-run breakdown)
+    tokenLedger,
+    tokenTotals: totalUsage(tokenLedger),
+    tokenByRun: usageByRunList(tokenLedger),
     // FR-D1 approval gate
     approvalGate,
     approvalState: approvalGate?.state ?? null,
