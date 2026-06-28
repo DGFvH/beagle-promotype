@@ -13,6 +13,7 @@ import ControlBar from "./ControlBar.jsx";
 import GenerationModeToggle from "./GenerationModeToggle.jsx";
 import LoopToggle from "./LoopToggle.jsx";
 import TokenPanel from "./TokenPanel.jsx";
+import ReportButton from "./ReportButton.jsx";
 import { hypothesisVerdict } from "../lib/analysis.js";
 
 export default function Dashboard({ exp, auto, busy }) {
@@ -41,6 +42,7 @@ export default function Dashboard({ exp, auto, busy }) {
     setLoopEnabled,
     tokenTotals,
     tokenByRun,
+    segmentAnalysis,
   } = exp;
 
   const champion = variantViews.find((v) => v.isControl) ?? variantViews[0];
@@ -121,6 +123,14 @@ export default function Dashboard({ exp, auto, busy }) {
             onTogglePlay={auto?.toggle}
             speed={auto?.speed}
             setSpeed={auto?.setSpeed}
+          />
+
+          {/* FR-G3: trigger a Claude-backed .pptx report once a test concludes. */}
+          <ReportButton
+            verdict={verdict}
+            metric={metric}
+            segmentAnalysis={segmentAnalysis}
+            hypothesis={challengerMeta?.hypothesis}
           />
 
           {/* FR-E1: internal token-spend panel (running total + per-run). */}
