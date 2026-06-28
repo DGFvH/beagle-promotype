@@ -92,21 +92,82 @@ export function defaultHeroConfig() {
   );
 }
 
-// FR-A2 baseline seam: load the current hero of the connected page as champion.
-// No real source yet (FR-A1, later wave) — return a sensible fixture. The real
-// connector (GitHub/WordPress/Framer) replaces the body, keeping this signature.
+// FR-A2 baseline seam, now wired to FR-A1 (beagle-integrations).
 //
-//   loadCurrentHero({ source }) -> { config, source, meta }
+//   loadCurrentHero({ source, config }) -> { config, source, meta }
 //
-// `config` is always a fully-normalised hero config safe to render/optimize.
+// `source` is the sanitized reference produced by /api/connect-source (NO
+// secret): { kind, repo:{owner,name}, ref, page:{path,reason}, locator }. We
+// best-effort map the located page onto HERO_DESIGN_SPACE so the connected
+// page's hero becomes the champion baseline; if no source / no page / anything
+// unmappable, we fall back cleanly to defaultHeroConfig(). `config` is always a
+// fully-normalised hero config safe to render/optimize.
+//
+// Note: the browser never holds the GitHub token, so this maps from the located
+// page REFERENCE (metadata), not raw page markup. The enum design space
+// (Section 8) means we only ever pick safe, pre-approved option values — a real
+// page can seed sensible defaults (e.g. layout from the page kind) but never
+// inject arbitrary copy/markup. When markup-level extraction lands, it slots in
+// behind heroConfigFromSource without changing this signature.
 export function loadCurrentHero(opts = {}) {
-  // TODO(FR-A1 / beagle-integrations): fetch the real hero from the connected
-  // source and map it onto HERO_DESIGN_SPACE here. Until then, fixture.
+  // An explicit config wins (tests / demo seed) — normalise and return.
+  if (opts.config) {
+    return {
+      config: normalizeConfig(opts.config),
+      source: opts.source ?? "fixture",
+      meta: { label: "Current hero" },
+    };
+  }
+
+  const source = opts.source ?? null;
+
+  // No connected source -> fixture baseline (pre-connect / demo).
+  if (!source || typeof source !== "object" || !source.page) {
+    return {
+      config: defaultHeroConfig(),
+      source: source ?? "fixture",
+      meta: {
+        label: source
+          ? "Current hero (no page located — fixture baseline)"
+          : "Current hero (fixture baseline)",
+      },
+    };
+  }
+
+  // Map the located page reference onto the design space (best-effort).
+  const config = heroConfigFromSource(source);
+  const repoLabel = source.repo
+    ? `${source.repo.owner}/${source.repo.name}`
+    : source.locator ?? "connected source";
   return {
-    config: normalizeConfig(opts.config ?? defaultHeroConfig()),
-    source: opts.source ?? "fixture",
-    meta: { label: "Current hero (fixture baseline)" },
+    config,
+    source,
+    meta: {
+      label: `Current hero from ${repoLabel} (${source.page.path})`,
+      pagePath: source.page.path,
+      located: true,
+    },
   };
+}
+
+// Best-effort: derive a hero config from a located-page reference. Starts from
+// the default (every attribute valid) and nudges layout based on the kind of
+// page found, so a connected real page reads slightly differently from the bare
+// fixture without ever leaving the enum design space (Section 8). normalizeConfig
+// guarantees the result is always valid even if a future field is unmappable.
+export function heroConfigFromSource(source) {
+  const base = defaultHeroConfig();
+  const path = String(source?.page?.path ?? "").toLowerCase();
+
+  // A static index.html homepage tends to be center-aligned; an app/component
+  // hero tends to be left-aligned. These only ever pick allowed enum options.
+  if (/\.html?$/.test(path)) {
+    base.layout = "center";
+  } else if (/hero\./.test(path)) {
+    base.layout = "left";
+  }
+
+  return normalizeConfig(base);
 }
 
 export function normalizeConfig(raw) {

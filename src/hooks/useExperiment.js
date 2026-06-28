@@ -13,6 +13,8 @@ import {
 import { generateChallenger, probeAiAvailable } from "../lib/challenger.js";
 import { METRICS } from "../lib/metrics.js";
 import { buildDemoState, DEFAULT_CONFIG } from "../lib/demoSeed.js";
+import { loadCurrentHero } from "../lib/engine.js";
+import { setConnectedSource } from "../lib/sources/store.js";
 import {
   createApprovalGate,
   approve as approveGate,
@@ -35,6 +37,12 @@ export function useExperiment() {
     status: "setup", // 'setup' | 'running' | 'decided'
     currentGeneration: 1,
   });
+
+  // FR-A1/FR-A3 — the connected source reference (NO secret) + located hero
+  // baseline. `null` until the user connects a source and passes the page check.
+  // The seeded demo (startSeeded) does NOT set this, so it is unaffected.
+  const [connectedSource, setConnectedSourceState] = useState(null);
+  const [currentHero, setCurrentHero] = useState(null);
 
   const [variants, setVariants] = useState([]); // current round's two variants
   const [stats, setStats] = useState({}); // variantId -> accumulator
@@ -122,11 +130,15 @@ export function useExperiment() {
       const name = config?.name ?? experiment.name;
       const metric = config?.goalMetric ?? experiment.goalMetric;
 
+      // FR-A2: if a real page was connected (FR-A1), use its located hero as the
+      // champion baseline; otherwise the demo fixture. loadCurrentHero already
+      // normalised the config, so it is always a valid hero.
+      const baselineConfig = currentHero?.config ?? { ...CONTROL_CONFIG };
       const control = makeVariant({
         experimentId: experiment.id,
         generation: 1,
         label: "Champion",
-        config: { ...CONTROL_CONFIG },
+        config: baselineConfig,
         isControl: true,
       });
       // First challenger is one mutation away from the control.
@@ -172,8 +184,19 @@ export function useExperiment() {
         })
       );
     },
-    [experiment.id, experiment.name, experiment.goalMetric, generationMode]
+    [experiment.id, experiment.name, experiment.goalMetric, generationMode, currentHero]
   );
+
+  // FR-A1/FR-A3 — record the connected source reference (after the user passes
+  // the page check) and load the located page as the champion baseline (FR-A2
+  // seam via loadCurrentHero). Stores only the sanitized reference (no secret).
+  const connect = useCallback((source) => {
+    setConnectedSource(source); // persist the reference in the source store
+    setConnectedSourceState(source);
+    const hero = loadCurrentHero({ source });
+    setCurrentHero(hero);
+    return hero;
+  }, []);
 
   // FR-D1/D2/D3 seam setter: integrations swap in the real injection +
   // experiment-creation callback. Until then, the default below is used.
@@ -334,6 +357,8 @@ export function useExperiment() {
     setLastDecision(null);
     setChallengerMeta(null);
     setApprovalGate(null);
+    setConnectedSourceState(null);
+    setCurrentHero(null);
   }, []);
 
   const setGoalMetric = useCallback((metricId) => {
@@ -359,6 +384,10 @@ export function useExperiment() {
     roundTarget: ROUND_TARGET,
     leaderId,
     confidence,
+    // FR-A1/FR-A3 connected source + located hero baseline
+    connectedSource,
+    currentHero,
+    connect,
     // generation mode
     generationMode,
     setGenerationMode,

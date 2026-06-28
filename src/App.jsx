@@ -13,6 +13,7 @@ import { WALKTHROUGH_STEPS } from "./lib/walkthrough.js";
 import { LogoMark } from "./components/Logo.jsx";
 import Hero from "./components/Hero.jsx";
 import Setup from "./components/Setup.jsx";
+import SourceConnect from "./components/SourceConnect.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import ApprovalGate from "./components/ApprovalGate.jsx";
 import MethodologyModal from "./components/MethodologyModal.jsx";
@@ -41,6 +42,11 @@ export default function App() {
   const inSetup = experiment.status === "setup";
   const awaitingApproval = experiment.status === "awaiting_approval";
   const showLanding = inSetup && showHero;
+  // FR-A1/FR-A3: in the manual flow the user connects a source (and passes the
+  // Claude page check) BEFORE configuring the experiment. The seeded demo /
+  // walkthrough set status away from "setup" via startSeeded, so they never hit
+  // this gate. Once connected, exp.connectedSource is set and Setup shows.
+  const needsConnect = inSetup && !showHero && !exp.connectedSource;
   const presenterActive = !inSetup && !awaitingApproval;
 
   const setSafeWalkthroughIndex = useCallback((nextIndex) => {
@@ -206,6 +212,8 @@ export default function App() {
             onMethodology={() => setMethodologyOpen(true)}
             onConfigure={() => setShowHero(false)}
           />
+        ) : needsConnect ? (
+          <SourceConnect onConnected={({ source }) => exp.connect(source)} />
         ) : inSetup ? (
           <Setup
             defaultName={experiment.name}

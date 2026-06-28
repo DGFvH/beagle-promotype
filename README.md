@@ -42,14 +42,35 @@ Keyboard shortcuts while an experiment is running: **Space** autoplay, **D** dec
 
 ## Configure a Fresh Experiment
 
-From the landing page: **Configure** -> name the experiment, choose a goal metric, review the variant gallery, then **Start fresh experiment**.
+From the landing page: **Configure** -> **Connect your site** (GitHub: paste a repo URL + access token; WordPress/Framer show "coming soon"). Beagle locates the hero page server-side and Claude confirms it can find the page (FR-A3) — a not-found/unsuitable verdict blocks progress. Then name the experiment, choose a goal metric, and **Start fresh experiment**.
 
 ## Tech Stack
 
 - React + Vite + Tailwind CSS v4
 - lucide-react icons
 - Recharts for the lazy-loaded lineage chart
-- Vercel serverless function for optional LLM challenger proposals
+- Vercel serverless functions for all secret-bearing calls (model + source connection)
+
+## Serverless routes (`api/`)
+
+Secrets live ONLY in these server-side functions (Section 6) — the browser calls
+the route, the route holds the key.
+
+| Route | Purpose | Secret |
+| --- | --- | --- |
+| `api/propose-challenger.js` | Claude hero-variant proposal (FR-C1/C2) | `ANTHROPIC_API_KEY` |
+| `api/connect-source.js` | Connect a website source + locate the hero page (FR-A1); calls the GitHub API server-side | the user's GitHub token (used server-side, never returned) |
+| `api/check-page.js` | Claude "Can we find your page?" sanity check (FR-A3); logs page ref + verdict + reason | `ANTHROPIC_API_KEY` |
+
+Pure, network-free cores live under `api/_lib/` (`source.js`, `checkPage.js`,
+`proposal.js`) so validators are unit-testable without a key or live network.
+Client orchestration for sources is under `src/lib/sources/` (GitHub wired;
+WordPress/Framer stubbed "coming soon" — drop-in extension points).
+
+## Tests
+
+`npm test` runs the Vitest suite (`src/lib/__tests__/`). Every `auto`
+acceptance criterion has a test; run `npm run build` (zero errors) alongside it.
 
 ## Environment Variables
 
