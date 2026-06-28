@@ -13,7 +13,7 @@ export default function HeroEvolutionVisual() {
             <GitBranch size={16} />
           </span>
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-ink">Primary navigation menu</div>
+            <div className="text-xs font-semibold text-ink">Homepage hero</div>
             <div className="text-[11px] text-muted">Populated demo / generation 9 ready</div>
           </div>
         </div>

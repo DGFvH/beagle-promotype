@@ -23,7 +23,7 @@ export const ROUND_TARGET = 600;
 export function useExperiment() {
   const [experiment, setExperiment] = useState({
     id: "exp_demo",
-    name: "Primary navigation menu",
+    name: "Homepage hero",
     goalMetric: "ctr",
     status: "setup", // 'setup' | 'running' | 'decided'
     currentGeneration: 1,

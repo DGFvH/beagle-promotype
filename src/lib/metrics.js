@@ -4,22 +4,22 @@
 export const METRICS = {
   ctr: {
     id: "ctr",
-    label: "Menu click-through rate",
+    label: "Hero click-through rate",
     short: "CTR",
     unit: "%",
     direction: "maximize",
-    help: "Share of visitors who click the menu. Higher is better.",
+    help: "Share of visitors who click the hero CTA. Higher is better.",
     format: (v) => `${(v * 100).toFixed(1)}%`,
     // For charting we want a single comparable number per round.
     toChart: (v) => +(v * 100).toFixed(2),
   },
   timeToAction: {
     id: "timeToAction",
-    label: "Time to find the menu",
+    label: "Time to hero action",
     short: "Time-to-action",
     unit: "s",
     direction: "minimize",
-    help: "Average seconds before a visitor clicks the menu. Lower is better.",
+    help: "Average seconds before a visitor clicks the hero CTA. Lower is better.",
     format: (v) => `${v.toFixed(2)}s`,
     toChart: (v) => +v.toFixed(2),
   },

@@ -8,22 +8,13 @@
 //     network error, timeout, bad output - silently falls back to the stub so
 //     the demo never breaks in front of a room.
 
-import { proposeChallenger, normalizeConfig } from "./engine.js";
+import { proposeChallenger, normalizeConfig, isValidHeroConfig } from "./engine.js";
 
-const ALIGNS = ["left", "center", "right"];
-const WEIGHTS = ["normal", "bold"];
-const SPACINGS = ["compact", "comfortable", "loose"];
-const NAV_STYLES = ["plain", "underline", "pills"];
-
+// Validate model output against the enum-constrained hero design space. Anything
+// outside HERO_DESIGN_SPACE is rejected so nothing arbitrary is ever injected
+// (Section 8 / FR-D2). isValidHeroConfig is the single source of truth.
 function isValidConfig(c) {
-  const n = normalizeConfig(c);
-  return (
-    ALIGNS.includes(n.align) &&
-    WEIGHTS.includes(n.weight) &&
-    typeof n.icon === "boolean" &&
-    SPACINGS.includes(n.spacing) &&
-    NAV_STYLES.includes(n.navStyle)
-  );
+  return isValidHeroConfig(c);
 }
 
 export async function generateChallenger(winner, goal, history, mode = "simulated") {

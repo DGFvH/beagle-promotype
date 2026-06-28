@@ -1,14 +1,23 @@
 // ---------------------------------------------------------------------------
-// Promotype demo engine
+// Promotype demo engine — HERO design space
 // ---------------------------------------------------------------------------
 // Everything here is in-memory and synthetic. The engine owns three jobs:
 //   1. Simulate visitor traffic against the current round's two variants.
 //   2. Aggregate per-variant results for the selected goal metric.
 //   3. Decide a winner and evolve a new challenger (the LLM hook lives here).
 //
+// FR-A2: the optimisation target is the page **hero**, not the old nav menu.
+// The design space is deliberately **enum-constrained** (Section 8: no
+// open-ended, fully model-generated UI). Each attribute exposes a small set of
+// safe options; a proposal — stub or Claude — can only ever pick from these.
+// This module is the single source of truth for the hero variant shape, so the
+// hypothesis (FR-C1) and injection (FR-D2) paths build against HERO_DESIGN_SPACE.
+//
 // The synthetic traffic is *lightly* biased toward objectively-better configs
 // so that, across generations, the lineage tends to climb. That bias is the
-// only thing standing in for "real users prefer this design".
+// only thing standing in for "real users prefer this hero". It will be replaced
+// by real analytics readout (FR-B2/FR-D3) — see loadCurrentHero() and the
+// analytics owner's module for the seam.
 
 import { gaussian, mean, stddev, proportionConfidence, meanConfidence, clamp01 } from "./stats.js";
 import { METRICS, isBetter } from "./metrics.js";
@@ -16,34 +25,146 @@ import { METRICS, isBetter } from "./metrics.js";
 let _idCounter = 0;
 const uid = (prefix) => `${prefix}_${(_idCounter++).toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
-// --- Hidden "ground truth" ---------------------------------------------------
-// The optimizer is, in effect, trying to discover these preferences. They are
-// hidden from the UI; only the simulated outcomes reveal them.
-const ALIGN_APPEAL = { left: 0.5, center: 0.62, right: 0.42 };
-const WEIGHT_APPEAL = { normal: 0.0, bold: 0.05 };
-const ICON_APPEAL = 0.07;
-const SPACING_APPEAL = { compact: 0.0, comfortable: 0.03, loose: 0.05 };
-const NAVSTYLE_APPEAL = { plain: 0.0, underline: 0.04, pills: 0.06 };
+// ---------------------------------------------------------------------------
+// HERO DESIGN SPACE (enum-constrained — Section 8)
+// ---------------------------------------------------------------------------
+// attribute -> { options:[...], default, label }. Keep option sets small and
+// safe; copy attributes (headline/subheadline/ctaLabel) are a curated set of
+// pre-approved strings rather than free text, so nothing arbitrary is rendered
+// or injected. Add options here (and the appeal weights below) to widen the
+// space; do NOT switch any attribute to free-form input in the MVP.
+export const HERO_DESIGN_SPACE = {
+  headline: {
+    label: "Headline",
+    default: "Build better landing pages, faster",
+    options: [
+      "Build better landing pages, faster",
+      "Turn visitors into customers",
+      "Ship a hero that converts",
+      "Your landing page, optimized by AI",
+    ],
+  },
+  subheadline: {
+    label: "Subheadline",
+    default: "An AB testing copilot for your hero section.",
+    options: [
+      "An AB testing copilot for your hero section.",
+      "Connect your site and let Beagle do the testing.",
+      "Evidence-based hero optimization, on autopilot.",
+      "No more guessing which hero converts best.",
+    ],
+  },
+  ctaLabel: {
+    label: "Primary CTA label",
+    default: "Get started",
+    options: ["Get started", "Start free trial", "Book a demo", "Try Beagle"],
+  },
+  ctaStyle: {
+    label: "CTA style",
+    default: "solid",
+    options: ["solid", "outline", "soft"],
+  },
+  layout: {
+    label: "Layout / alignment",
+    default: "left",
+    options: ["left", "center", "split"],
+  },
+  media: {
+    label: "Supporting media",
+    default: "none",
+    options: ["none", "illustration", "screenshot", "video"],
+  },
+};
 
-export function normalizeConfig(raw) {
+// Ordered list of attribute keys — the canonical iteration order.
+export const HERO_ATTRIBUTES = Object.keys(HERO_DESIGN_SPACE);
+
+// Allowed-option lookups, reused by validation in challenger.js and api/.
+export const HERO_OPTIONS = Object.fromEntries(
+  HERO_ATTRIBUTES.map((k) => [k, HERO_DESIGN_SPACE[k].options])
+);
+
+// The default/fixture hero — used as the champion baseline until FR-A1 wires a
+// real source. loadCurrentHero() is the extension seam the real connector fills.
+export function defaultHeroConfig() {
+  return Object.fromEntries(
+    HERO_ATTRIBUTES.map((k) => [k, HERO_DESIGN_SPACE[k].default])
+  );
+}
+
+// FR-A2 baseline seam: load the current hero of the connected page as champion.
+// No real source yet (FR-A1, later wave) — return a sensible fixture. The real
+// connector (GitHub/WordPress/Framer) replaces the body, keeping this signature.
+//
+//   loadCurrentHero({ source }) -> { config, source, meta }
+//
+// `config` is always a fully-normalised hero config safe to render/optimize.
+export function loadCurrentHero(opts = {}) {
+  // TODO(FR-A1 / beagle-integrations): fetch the real hero from the connected
+  // source and map it onto HERO_DESIGN_SPACE here. Until then, fixture.
   return {
-    align: raw?.align ?? "left",
-    weight: raw?.weight ?? "normal",
-    icon: Boolean(raw?.icon),
-    spacing: raw?.spacing ?? "comfortable",
-    navStyle: raw?.navStyle ?? "plain",
+    config: normalizeConfig(opts.config ?? defaultHeroConfig()),
+    source: opts.source ?? "fixture",
+    meta: { label: "Current hero (fixture baseline)" },
   };
 }
 
-// Maps a variant config to a hidden "appeal" in roughly [0.4, 0.85].
+export function normalizeConfig(raw) {
+  const out = {};
+  for (const key of HERO_ATTRIBUTES) {
+    const spec = HERO_DESIGN_SPACE[key];
+    const val = raw?.[key];
+    out[key] = spec.options.includes(val) ? val : spec.default;
+  }
+  return out;
+}
+
+// Is `config` entirely within the enum-constrained design space? Used by the
+// challenger validation / injection guard so nothing out-of-space slips through.
+export function isValidHeroConfig(raw) {
+  if (!raw || typeof raw !== "object") return false;
+  return HERO_ATTRIBUTES.every((key) =>
+    HERO_DESIGN_SPACE[key].options.includes(raw[key])
+  );
+}
+
+// --- Hidden "ground truth" ---------------------------------------------------
+// The optimizer is, in effect, trying to discover these preferences. They are
+// hidden from the UI; only the simulated outcomes reveal them. Each attribute
+// option carries a small appeal contribution. (Synthetic — replaced by real
+// analytics in the MVP; see FR-B2/FR-D3.)
+const HEADLINE_APPEAL = {
+  "Build better landing pages, faster": 0.0,
+  "Turn visitors into customers": 0.06,
+  "Ship a hero that converts": 0.04,
+  "Your landing page, optimized by AI": 0.05,
+};
+const SUBHEAD_APPEAL = {
+  "An AB testing copilot for your hero section.": 0.0,
+  "Connect your site and let Beagle do the testing.": 0.02,
+  "Evidence-based hero optimization, on autopilot.": 0.04,
+  "No more guessing which hero converts best.": 0.05,
+};
+const CTA_LABEL_APPEAL = {
+  "Get started": 0.0,
+  "Start free trial": 0.05,
+  "Book a demo": 0.02,
+  "Try Beagle": 0.03,
+};
+const CTA_STYLE_APPEAL = { solid: 0.05, outline: 0.0, soft: 0.03 };
+const LAYOUT_APPEAL = { left: 0.5, center: 0.6, split: 0.55 };
+const MEDIA_APPEAL = { none: 0.0, illustration: 0.03, screenshot: 0.06, video: 0.07 };
+
+// Maps a variant config to a hidden "appeal" in roughly [0.4, 0.9].
 export function configAppeal(config, generation = 0) {
   const c = normalizeConfig(config);
   const base =
-    (ALIGN_APPEAL[c.align] ?? 0.45) +
-    (WEIGHT_APPEAL[c.weight] ?? 0) +
-    (c.icon ? ICON_APPEAL : 0) +
-    (SPACING_APPEAL[c.spacing] ?? 0) +
-    (NAVSTYLE_APPEAL[c.navStyle] ?? 0);
+    (LAYOUT_APPEAL[c.layout] ?? 0.45) +
+    (HEADLINE_APPEAL[c.headline] ?? 0) +
+    (SUBHEAD_APPEAL[c.subheadline] ?? 0) +
+    (CTA_LABEL_APPEAL[c.ctaLabel] ?? 0) +
+    (CTA_STYLE_APPEAL[c.ctaStyle] ?? 0) +
+    (MEDIA_APPEAL[c.media] ?? 0);
   const drift = Math.min(0.08, generation * 0.006);
   return clamp01(base + drift);
 }
@@ -59,7 +180,7 @@ function simulateSession(variant, generation) {
   const converted = Math.random() < appeal * 0.55;
 
   // Time-to-action (seconds): more appeal => found faster. Floor + noise.
-  const baseTime = 8.5 - appeal * 5.5; // ~3.8s (great) .. ~6.3s (poor)
+  const baseTime = 8.5 - appeal * 5.5; // ~3.5s (great) .. ~6.3s (poor)
   const time = Math.max(0.6, gaussian(baseTime, 1.1));
 
   return {
@@ -182,9 +303,10 @@ export function leadingVariantId(metricId, variants, statsByVariant) {
 // ---------------------------------------------------------------------------
 // LLM HOOK
 // ---------------------------------------------------------------------------
-// Demo: returns a mutated config + a human rationale. Real version: a model
-// proposes a new design from the winning variant, the goal, and the history of
-// what has worked (see api/propose-challenger.js and src/lib/challenger.js).
+// Demo: returns a mutated hero config + a human rationale. Real version: Claude
+// proposes a new hero from the winning variant, the goal, the design system and
+// guardrails (see api/propose-challenger.js and src/lib/challenger.js — owned by
+// beagle-hypothesis). This stub stays as the offline fallback.
 //
 //   - `winner`  : the winning Variant (config we mutate from)
 //   - `goal`    : the metric id being optimized
@@ -214,21 +336,21 @@ export function stubRationale(parent, child, goal) {
   const ch = normalizeConfig(child);
   const g = GOAL_PHRASE[goal] ?? "performance";
   if (!parent) return `Initial challenger to probe ${g}.`;
-  if (p.align !== ch.align)
-    return `Prior rounds favored stronger menu placement, so we're testing ${ch.align} alignment to lift ${g}.`;
-  if (p.weight !== ch.weight)
-    return ch.weight === "bold"
-      ? `Bolding the labels to increase salience and push ${g} higher.`
-      : `Lightening the labels to cut visual noise and improve ${g}.`;
-  if (p.icon !== ch.icon)
-    return ch.icon
-      ? `Adding leading icons to speed up scanning and improve ${g}.`
-      : `Removing icons to declutter the menu and improve ${g}.`;
-  if (p.spacing !== ch.spacing)
-    return `Adjusting item spacing to ${ch.spacing} to tune click accuracy for ${g}.`;
-  if (p.navStyle !== ch.navStyle)
-    return `Trying ${ch.navStyle} nav styling to clarify interactive targets.`;
-  return `Iterating on the reigning champion to keep nudging ${g} upward.`;
+  if (p.headline !== ch.headline)
+    return `Testing a sharper headline ("${ch.headline}") to lift ${g}.`;
+  if (p.subheadline !== ch.subheadline)
+    return `Reframing the subheadline to clarify value and improve ${g}.`;
+  if (p.ctaLabel !== ch.ctaLabel)
+    return `Trying the CTA label "${ch.ctaLabel}" to nudge ${g} higher.`;
+  if (p.ctaStyle !== ch.ctaStyle)
+    return `Switching the CTA to a ${ch.ctaStyle} style to increase salience for ${g}.`;
+  if (p.layout !== ch.layout)
+    return `Re-laying the hero to ${ch.layout} alignment to strengthen the scan path for ${g}.`;
+  if (p.media !== ch.media)
+    return ch.media === "none"
+      ? `Removing supporting media to declutter the hero and focus ${g}.`
+      : `Adding ${ch.media} as supporting media to reinforce the offer and lift ${g}.`;
+  return `Iterating on the reigning champion hero to keep nudging ${g} upward.`;
 }
 
 // Mutation pool: change exactly ONE attribute so lineage reads sensibly.
@@ -238,17 +360,10 @@ function mutateConfig(config, history, goal) {
   seen.add(configKey(base));
 
   const candidates = [];
-
-  for (const align of ["left", "center", "right"]) {
-    if (align !== base.align) candidates.push({ ...base, align });
-  }
-  candidates.push({ ...base, weight: base.weight === "bold" ? "normal" : "bold" });
-  candidates.push({ ...base, icon: !base.icon });
-  for (const spacing of ["compact", "comfortable", "loose"]) {
-    if (spacing !== base.spacing) candidates.push({ ...base, spacing });
-  }
-  for (const navStyle of ["plain", "underline", "pills"]) {
-    if (navStyle !== base.navStyle) candidates.push({ ...base, navStyle });
+  for (const key of HERO_ATTRIBUTES) {
+    for (const option of HERO_DESIGN_SPACE[key].options) {
+      if (option !== base[key]) candidates.push({ ...base, [key]: option });
+    }
   }
 
   // Prefer configs we haven't tried yet.
@@ -276,7 +391,7 @@ function weightedPick(items, weights) {
 
 export function configKey(config) {
   const c = normalizeConfig(config);
-  return `${c.align}|${c.weight}|${c.icon ? "icon" : "noicon"}|${c.spacing}|${c.navStyle}`;
+  return HERO_ATTRIBUTES.map((k) => `${k}=${c[k]}`).join("|");
 }
 
 // A short human label describing how a challenger differs from its parent.
@@ -285,11 +400,9 @@ export function describeMutation(parent, child) {
   const ch = normalizeConfig(child);
   if (!parent) return "Initial control";
   const diffs = [];
-  if (p.align !== ch.align) diffs.push(`align -> ${ch.align}`);
-  if (p.weight !== ch.weight) diffs.push(`weight -> ${ch.weight}`);
-  if (p.icon !== ch.icon) diffs.push(ch.icon ? "added icons" : "removed icons");
-  if (p.spacing !== ch.spacing) diffs.push(`spacing -> ${ch.spacing}`);
-  if (p.navStyle !== ch.navStyle) diffs.push(`navStyle -> ${ch.navStyle}`);
+  for (const key of HERO_ATTRIBUTES) {
+    if (p[key] !== ch[key]) diffs.push(`${key} -> ${ch[key]}`);
+  }
   return diffs.length ? diffs.join(", ") : "no change";
 }
 

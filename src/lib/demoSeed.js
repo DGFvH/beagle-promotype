@@ -1,115 +1,248 @@
-import { normalizeConfig } from "./engine.js";
+import { normalizeConfig, defaultHeroConfig } from "./engine.js";
 
 export { normalizeConfig };
 
-// Default navigation variant shape - every config is normalized to this.
-export const DEFAULT_CONFIG = {
-  align: "left",
-  weight: "normal",
-  icon: false,
-  spacing: "compact",
-  navStyle: "plain",
-};
+// Default hero variant shape — the champion baseline (FR-A2). Every config is
+// normalized to the enum-constrained HERO_DESIGN_SPACE. This is the same fixture
+// loadCurrentHero() returns until the real source connector (FR-A1) is wired.
+export const DEFAULT_CONFIG = defaultHeroConfig();
 
-// Curated rounds: each uses visually distinct champion vs challenger configs.
-// Metrics trend upward so the lineage chart tells a clear story out of the box.
+// Curated rounds: each uses visually/semantically distinct champion vs
+// challenger hero configs. Metrics trend upward so the lineage chart tells a
+// clear story out of the box. Each step changes exactly one hero attribute.
 const SEED_SCRIPT = [
   {
-    champion: { align: "left", weight: "normal", icon: false, spacing: "compact", navStyle: "plain" },
-    challenger: { align: "center", weight: "normal", icon: false, spacing: "comfortable", navStyle: "plain" },
+    champion: {
+      headline: "Build better landing pages, faster",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "left",
+      media: "none",
+    },
+    challenger: {
+      headline: "Build better landing pages, faster",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "none",
+    },
     championValue: 0.38,
     challengerValue: 0.46,
     winnerIsChallenger: true,
-    mutation: "align -> center",
-    rationale: "Centered navigation tested to improve scan path for first-time visitors.",
+    mutation: "layout -> center",
+    rationale: "Centered hero tested to focus the scan path for first-time visitors.",
   },
   {
-    champion: { align: "center", weight: "normal", icon: false, spacing: "comfortable", navStyle: "plain" },
-    challenger: { align: "center", weight: "bold", icon: false, spacing: "comfortable", navStyle: "plain" },
+    champion: {
+      headline: "Build better landing pages, faster",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "none",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "none",
+    },
     championValue: 0.46,
     challengerValue: 0.52,
     winnerIsChallenger: true,
-    mutation: "weight -> bold",
-    rationale: "Bolder labels to increase salience without changing layout.",
+    mutation: "headline -> Turn visitors into customers",
+    rationale: "Outcome-led headline to sharpen the value proposition.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: false, spacing: "comfortable", navStyle: "plain" },
-    challenger: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "plain" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "none",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
     championValue: 0.52,
     challengerValue: 0.57,
     winnerIsChallenger: true,
-    mutation: "added icons",
-    rationale: "Leading icons added to speed up menu item recognition.",
+    mutation: "media -> screenshot",
+    rationale: "Product screenshot added to make the offer concrete.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "plain" },
-    challenger: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "pills" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Get started",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
     championValue: 0.57,
     challengerValue: 0.61,
     winnerIsChallenger: true,
-    mutation: "navStyle -> pills",
-    rationale: "Pill-shaped nav items to clarify click targets.",
+    mutation: "ctaLabel -> Start free trial",
+    rationale: "Lower-friction CTA label tested to clarify the next step.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "pills" },
-    challenger: { align: "center", weight: "bold", icon: true, spacing: "loose", navStyle: "pills" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "An AB testing copilot for your hero section.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
     championValue: 0.61,
     challengerValue: 0.64,
     winnerIsChallenger: true,
-    mutation: "spacing -> loose",
-    rationale: "More breathing room between items to reduce mis-clicks.",
+    mutation: "subheadline -> Evidence-based hero optimization, on autopilot.",
+    rationale: "Subheadline reframed around evidence to reinforce trust.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: true, spacing: "loose", navStyle: "pills" },
-    challenger: { align: "center", weight: "bold", icon: true, spacing: "loose", navStyle: "underline" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "video",
+    },
     championValue: 0.64,
     challengerValue: 0.67,
     winnerIsChallenger: true,
-    mutation: "navStyle -> underline",
-    rationale: "Underline affordance tested against filled pills.",
+    mutation: "media -> video",
+    rationale: "Short product video tested against the static screenshot.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: true, spacing: "loose", navStyle: "underline" },
-    challenger: { align: "right", weight: "bold", icon: true, spacing: "loose", navStyle: "underline" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "video",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "outline",
+      layout: "center",
+      media: "video",
+    },
     championValue: 0.67,
     challengerValue: 0.63,
     winnerIsChallenger: false,
-    mutation: "align -> right",
-    rationale: "Right alignment probed; center retained as stronger for this audience.",
+    mutation: "ctaStyle -> outline",
+    rationale: "Outline CTA probed; solid retained as stronger for this audience.",
   },
   {
-    champion: { align: "center", weight: "bold", icon: true, spacing: "loose", navStyle: "underline" },
-    challenger: { align: "center", weight: "normal", icon: true, spacing: "loose", navStyle: "underline" },
+    champion: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "video",
+    },
+    challenger: {
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "split",
+      media: "video",
+    },
     championValue: 0.67,
     challengerValue: 0.69,
     winnerIsChallenger: true,
-    mutation: "weight -> normal",
-    rationale: "Slightly lighter weight reduced visual noise while keeping icons.",
+    mutation: "layout -> split",
+    rationale: "Split layout placed copy and media side by side to balance attention.",
   },
 ];
 
 // Generation currently in progress (gen 9): champion vs a fresh challenger.
 const CURRENT_ROUND = {
   generation: 9,
-  champion: { align: "center", weight: "normal", icon: true, spacing: "loose", navStyle: "underline" },
-  challenger: { align: "center", weight: "bold", icon: true, spacing: "comfortable", navStyle: "pills" },
-  rationale: "Re-testing bold pills with tighter spacing against the reigning underline style.",
+  champion: {
+    headline: "Turn visitors into customers",
+    subheadline: "Evidence-based hero optimization, on autopilot.",
+    ctaLabel: "Start free trial",
+    ctaStyle: "solid",
+    layout: "split",
+    media: "video",
+  },
+  challenger: {
+    headline: "Ship a hero that converts",
+    subheadline: "Evidence-based hero optimization, on autopilot.",
+    ctaLabel: "Start free trial",
+    ctaStyle: "soft",
+    layout: "split",
+    media: "video",
+  },
+  rationale: "Re-testing a punchier headline and a soft CTA against the reigning split hero.",
   source: "simulated",
   // Starts early enough for 1x autoplay to make the live round visibly progress.
   championStats: { visitors: 95, clicks: 69, converts: 37, times: [] },
   challengerStats: { visitors: 95, clicks: 62, converts: 33, times: [] },
 };
 
-// Gallery shown on setup - a spread of distinct configs from the seed lineage.
+// Gallery shown on setup - a spread of distinct hero configs from the lineage.
 export const VARIANT_GALLERY = [
   { label: "G1 control", config: SEED_SCRIPT[0].champion },
   { label: "G1 challenger", config: SEED_SCRIPT[0].challenger },
-  { label: "G3 + icons", config: SEED_SCRIPT[2].challenger },
-  { label: "G4 pills", config: SEED_SCRIPT[3].challenger },
-  { label: "G6 underline", config: SEED_SCRIPT[5].challenger },
+  { label: "G3 + screenshot", config: SEED_SCRIPT[2].challenger },
+  { label: "G4 trial CTA", config: SEED_SCRIPT[3].challenger },
+  { label: "G6 video", config: SEED_SCRIPT[5].challenger },
   { label: "G8 champion", config: SEED_SCRIPT[7].champion },
   { label: "G9 challenger", config: CURRENT_ROUND.challenger },
-  { label: "Right align", config: { align: "right", weight: "bold", icon: false, spacing: "compact", navStyle: "plain" } },
+  {
+    label: "Outline CTA",
+    config: {
+      headline: "Your landing page, optimized by AI",
+      subheadline: "No more guessing which hero converts best.",
+      ctaLabel: "Book a demo",
+      ctaStyle: "outline",
+      layout: "left",
+      media: "illustration",
+    },
+  },
 ];
 
 /** G1 vs G8 configs for the landing hero before/after visual. */
@@ -134,9 +267,7 @@ export function buildDemoState({ experimentId, name, goalMetric, makeVariant, co
     const champCfg = normalizeConfig(row.champion);
     const challCfg = normalizeConfig(row.challenger);
     const winnerCfg = row.winnerIsChallenger ? challCfg : champCfg;
-    const loserCfg = row.winnerIsChallenger ? champCfg : challCfg;
     const winnerValue = row.winnerIsChallenger ? row.challengerValue : row.championValue;
-    const loserValue = row.winnerIsChallenger ? row.championValue : row.challengerValue;
     const visitors = 600;
 
     const championId = `seed_c_${gen}`;

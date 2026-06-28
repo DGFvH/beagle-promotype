@@ -3,12 +3,10 @@ import { METRICS } from "../lib/metrics.js";
 import { DEFAULT_CONFIG, VARIANT_GALLERY } from "../lib/demoSeed.js";
 import MenuPreview from "./MenuPreview.jsx";
 
+// One hero attribute away from DEFAULT_CONFIG — the first challenger preview.
 const FIRST_CHALLENGER = {
-  align: "center",
-  weight: "normal",
-  icon: false,
-  spacing: "comfortable",
-  navStyle: "plain",
+  ...DEFAULT_CONFIG,
+  layout: "center",
 };
 
 export default function Setup({ defaultName, defaultMetric, onStart }) {
@@ -40,7 +38,7 @@ export default function Setup({ defaultName, defaultMetric, onStart }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-edge bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10"
-            placeholder="Primary navigation menu"
+            placeholder="Homepage hero"
           />
         </label>
 
