@@ -1,29 +1,35 @@
 // ---------------------------------------------------------------------------
-// Serverless proxy: real LLM challenger generation
+// Serverless proxy: Claude hero-variant proposal (FR-C1 / FR-C2 / FR-E1)
 // ---------------------------------------------------------------------------
-// Runs on Vercel (Node serverless). The API key lives ONLY here, server-side,
-// and is never shipped to the browser. The client calls this endpoint when the
-// user flips the generation mode to "AI"; if no key is configured (or anything
-// fails) the client silently falls back to the local simulated stub.
+// Runs on Vercel (Node serverless) and under the local Vite dev middleware
+// (see vite.config.js). The Anthropic API key lives ONLY here, server-side, and
+// is NEVER shipped to the browser (Section 6). The client (src/lib/challenger.js)
+// POSTs the chosen metric + current hero + history + the supplied design system /
+// guardrails; this route calls Claude, validates/sanitises the output, runs the
+// guardrail gate, and returns { variant, hypothesis, diff, usage, source, model }.
 //
-// Provider is OpenAI-compatible by default but configurable via env:
-//   LLM_API_KEY   (required to enable AI mode)
-//   LLM_API_BASE  (default https://api.openai.com/v1)
-//   LLM_MODEL     (default gpt-4o-mini)
+// Failure modes, all of which the client treats as "fall back to the local stub":
+//   - no key            -> 501 not_configured
+//   - upstream error    -> 502 upstream_error
+//   - timeout           -> 502 timeout
+//   - malformed output  -> 422 invalid_output  (never returns raw markup)
+// A guardrail-blocked variant is returned 200 with { blocked: true, reason } so
+// the UI can surface it (guardrails win — Section 0.3 — never silently dropped).
 //
-// The design space is enum-constrained, so the model can only ever return one
-// of a handful of safe configs — there is no arbitrary HTML to render.
+// Claude usage (per the claude-api skill): official @anthropic-ai/sdk, model
+// claude-opus-4-8, structured JSON via output_config.format, NO temperature /
+// budget_tokens / assistant prefill. response.usage is read for FR-E1.
 
-const ALIGNS = ["left", "center", "right"];
-const WEIGHTS = ["normal", "bold"];
-const SPACINGS = ["compact", "comfortable", "loose"];
-const NAV_STYLES = ["plain", "underline", "pills"];
+import Anthropic from "@anthropic-ai/sdk";
+import {
+  buildProposalPrompt,
+  sanitizeProposal,
+  extractUsage,
+  PROPOSAL_JSON_SCHEMA,
+} from "./_lib/proposal.js";
 
-const GOAL_TEXT = {
-  ctr: "maximize the menu click-through rate (share of visitors who click the menu)",
-  conversion: "maximize the conversion rate (share of visitors who complete the target action)",
-  timeToAction: "minimize time-to-action (average seconds before a visitor clicks the menu)",
-};
+const DEFAULT_MODEL = "claude-opus-4-8";
+const TIMEOUT_MS = 20000;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -31,14 +37,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method_not_allowed" });
   }
 
-  const apiKey = process.env.LLM_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    // Signal to the client that AI mode is unavailable -> it falls back to stub.
+    // No key -> AI mode unavailable. Client falls back to the local stub.
     return res.status(501).json({ error: "not_configured" });
   }
 
-  const base = process.env.LLM_API_BASE || "https://api.openai.com/v1";
-  const model = process.env.LLM_MODEL || "gpt-4o-mini";
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
 
   let body = req.body;
   if (typeof body === "string") {
@@ -48,135 +53,108 @@ export default async function handler(req, res) {
       body = {};
     }
   }
-  const winner = normalizeWinner(body?.winner);
-  const goal = body?.goal ?? "ctr";
-  const history = Array.isArray(body?.history) ? body.history : [];
+  body = body && typeof body === "object" ? body : {};
 
-  const prompt = buildPrompt(winner, goal, history);
+  // A probe request (probeAiAvailable) just needs the 501/200 distinction; we've
+  // already returned 501 above when there's no key, so short-circuit here so a
+  // probe never spends a model call.
+  if (body.probe === true) {
+    return res.status(200).json({ ok: true, configured: true, model });
+  }
 
+  const current = body.current ?? body.winner ?? null;
+  const goal = body.goal ?? "ctr";
+  const history = Array.isArray(body.history) ? body.history : [];
+  const guardrails = body.guardrails ?? null;
+
+  const { system, user } = buildProposalPrompt({ current, goal, history, guardrails });
+
+  let response;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    const resp = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const client = new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 });
+    response = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      thinking: { type: "adaptive" },
+      system,
+      messages: [{ role: "user", content: user }],
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: PROPOSAL_JSON_SCHEMA,
+        },
       },
-      body: JSON.stringify({
-        model,
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert conversion-rate-optimization designer running an " +
-              "automated A/B testing loop. You propose the next challenger UI variant. " +
-              "Respond ONLY with strict JSON matching the requested schema.",
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
     });
-    clearTimeout(timeout);
-
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => "");
-      return res.status(502).json({ error: "upstream_error", status: resp.status, detail: detail.slice(0, 500) });
-    }
-
-    const data = await resp.json();
-    const raw = data?.choices?.[0]?.message?.content ?? "{}";
-    const parsed = safeParse(raw);
-    const config = sanitizeConfig(parsed?.config ?? parsed, winner);
-    const rationale =
-      typeof parsed?.rationale === "string" && parsed.rationale.trim()
-        ? parsed.rationale.trim().slice(0, 280)
-        : "Model proposed this variant based on the winning design and goal.";
-
-    return res.status(200).json({ config, rationale, source: "llm", model });
   } catch (err) {
-    const aborted = err?.name === "AbortError";
-    return res.status(502).json({ error: aborted ? "timeout" : "request_failed" });
-  }
-}
-
-function buildPrompt(winner, goal, history) {
-  const lineage = history
-    .slice(-8)
-    .map((r) => {
-      const c = r.winnerConfig ?? r.config ?? {};
-      const val = r.winnerValue != null ? ` (metric=${round(r.winnerValue)})` : "";
-      return `  - Gen ${r.generation}: won align=${c.align}, weight=${c.weight}, icon=${!!c.icon}, spacing=${c.spacing ?? "comfortable"}, navStyle=${c.navStyle ?? "plain"}${val}`;
-    })
-    .join("\n");
-
-  return [
-    `Goal: ${GOAL_TEXT[goal] ?? goal}.`,
-    "",
-    "Design space for a website navigation menu (you must stay within these):",
-    `  - align: one of ${ALIGNS.join(", ")}`,
-    `  - weight: one of ${WEIGHTS.join(", ")}`,
-    "  - icon: boolean (whether menu items show a leading icon)",
-    `  - spacing: one of ${SPACINGS.join(", ")}`,
-    `  - navStyle: one of ${NAV_STYLES.join(", ")}`,
-    "",
-    "Current winning variant (the champion to beat):",
-    `  align=${winner.align}, weight=${winner.weight}, icon=${winner.icon}, spacing=${winner.spacing}, navStyle=${winner.navStyle}`,
-    "",
-    history.length ? `History of what has won so far:\n${lineage}` : "No prior history yet.",
-    "",
-    "Propose ONE new challenger variant likely to beat the champion on the goal.",
-    "Prefer changing a single attribute so the experiment isolates the effect,",
-    "and avoid repeating a configuration that already lost.",
-    "",
-    'Respond with strict JSON: {"config":{"align":"...","weight":"...","icon":true|false,"spacing":"...","navStyle":"..."},"rationale":"one concise sentence"}',
-  ].join("\n");
-}
-
-function safeParse(s) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    // Try to extract the first {...} block.
-    const m = String(s).match(/\{[\s\S]*\}/);
-    if (m) {
-      try {
-        return JSON.parse(m[0]);
-      } catch {
-        return {};
-      }
+    const status = err?.status;
+    const aborted =
+      err?.name === "APIConnectionTimeoutError" ||
+      err?.name === "AbortError" ||
+      /timeout/i.test(err?.message ?? "");
+    if (aborted) {
+      return res.status(502).json({ error: "timeout" });
     }
-    return {};
+    return res
+      .status(502)
+      .json({ error: "upstream_error", status: status ?? null });
   }
+
+  // Token usage for FR-E1 — captured regardless of whether the content validates.
+  const usage = extractUsage(response?.usage);
+
+  // Pull the model's text/JSON payload out of the content blocks. Structured
+  // output lands as a text block whose content is the JSON; be defensive.
+  const rawText = extractText(response);
+
+  const result = sanitizeProposal(rawText, { current, goal, guardrails });
+
+  if (result.ok) {
+    return res.status(200).json({
+      variant: result.variant,
+      hypothesis: result.hypothesis,
+      diff: result.diff,
+      warnings: result.warnings,
+      usage,
+      source: "claude",
+      model,
+    });
+  }
+
+  if (result.blocked) {
+    // Guardrails win — surface the block, do NOT return an approved variant.
+    return res.status(200).json({
+      blocked: true,
+      reason: result.reason,
+      violations: result.violations,
+      // Still expose the (sanitised) variant + diff so the UI can show WHAT was
+      // blocked, but never as something approvable.
+      variant: result.variant,
+      hypothesis: result.hypothesis,
+      diff: result.diff,
+      usage,
+      source: "claude",
+      model,
+    });
+  }
+
+  // Malformed / out-of-space output: never inject unvalidated markup. Tell the
+  // client to fall back to the local stub.
+  return res
+    .status(422)
+    .json({ error: "invalid_output", reason: result.reason, usage, model });
 }
 
-// Force the model output back into the valid enum space; fall back to the
-// winner's value for any attribute the model got wrong.
-function normalizeWinner(w) {
-  return {
-    align: ALIGNS.includes(w?.align) ? w.align : "left",
-    weight: WEIGHTS.includes(w?.weight) ? w.weight : "normal",
-    icon: typeof w?.icon === "boolean" ? w.icon : false,
-    spacing: SPACINGS.includes(w?.spacing) ? w.spacing : "comfortable",
-    navStyle: NAV_STYLES.includes(w?.navStyle) ? w.navStyle : "plain",
-  };
-}
-
-function sanitizeConfig(c, winner) {
-  const w = normalizeWinner(winner);
-  return {
-    align: ALIGNS.includes(c?.align) ? c.align : w.align,
-    weight: WEIGHTS.includes(c?.weight) ? c.weight : w.weight,
-    icon: typeof c?.icon === "boolean" ? c.icon : w.icon,
-    spacing: SPACINGS.includes(c?.spacing) ? c.spacing : w.spacing,
-    navStyle: NAV_STYLES.includes(c?.navStyle) ? c.navStyle : w.navStyle,
-  };
-}
-
-function round(n) {
-  return Math.round(Number(n) * 1000) / 1000;
+// Concatenate all text content blocks. The SDK's structured-output response
+// returns the JSON inside a text block; `parsed_output` may also be present.
+function extractText(response) {
+  if (!response) return "";
+  if (response.parsed_output && typeof response.parsed_output === "object") {
+    return response.parsed_output;
+  }
+  const content = Array.isArray(response.content) ? response.content : [];
+  const text = content
+    .filter((b) => b && b.type === "text" && typeof b.text === "string")
+    .map((b) => b.text)
+    .join("");
+  return text;
 }
