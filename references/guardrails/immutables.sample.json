@@ -1,0 +1,6 @@
+{
+  "_comment": "SAMPLE immutable / do-not-change list (FR-F3). Replace per project. Consumed by src/lib/guardrails/. Each entry in `attributes` is a hero attribute key from HERO_ATTRIBUTES in src/lib/engine.js; a proposal that changes any of these vs the current hero is rejected. `elements` is a forward-looking list of DOM/element identifiers the injection path must never alter (enforced structurally at injection time).",
+  "attributes": ["headline"],
+  "elements": ["site-logo", "primary-nav"],
+  "notes": "Sample policy: the approved headline copy and the logo/nav are locked. Variants may change CTA, layout, media, etc."
+}
