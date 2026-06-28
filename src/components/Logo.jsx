@@ -26,7 +26,7 @@ export default function Logo({ size = 36, className = "" }) {
 export function LogoMark({ size = 28 }) {
   return (
     <div
-      className="grid shrink-0 place-items-center rounded-lg border border-edge bg-surface-2"
+      className="grid shrink-0 place-items-center rounded-lg border border-edge bg-surface"
       style={{ width: size + 10, height: size + 10 }}
     >
       <Logo size={size} />

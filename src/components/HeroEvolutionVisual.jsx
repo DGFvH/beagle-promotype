@@ -6,7 +6,7 @@ export default function HeroEvolutionVisual() {
   // Fail safely: never throw or fabricate if the seed inputs are absent.
   if (!HERO_EVOLUTION?.before?.config || !HERO_EVOLUTION?.after?.config) {
     return (
-      <div className="hero-product-frame grid place-items-center rounded-lg border border-edge bg-surface px-4 py-10 text-center shadow-sm">
+      <div className="hero-product-frame grid place-items-center overflow-hidden px-4 py-10 text-center">
         <div className="max-w-xs">
           <div className="text-sm font-semibold text-ink">Hero preview unavailable</div>
           <p className="mt-1 text-xs text-muted">
@@ -20,10 +20,10 @@ export default function HeroEvolutionVisual() {
   const { before, after, delta } = HERO_EVOLUTION;
 
   return (
-    <div className="hero-product-frame overflow-hidden rounded-lg border border-edge bg-surface shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge bg-surface-2 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-accent text-white">
+    <div className="hero-product-frame overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge/60 bg-white/40 px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-white shadow-[0_6px_14px_-6px_rgba(36,87,72,0.7)]">
             <GitBranch size={16} />
           </span>
           <div className="min-w-0">
@@ -38,7 +38,7 @@ export default function HeroEvolutionVisual() {
           </div>
         </div>
         {delta ? (
-          <div className="inline-flex items-center gap-2 rounded-md border border-win/25 bg-win/10 px-3 py-1.5 text-xs font-semibold text-win">
+          <div className="inline-flex items-center gap-2 rounded-full border border-win/25 bg-win/10 px-3 py-1.5 text-xs font-semibold text-win">
             <TrendingUp size={14} />
             {delta} CTR lift
           </div>
@@ -46,17 +46,17 @@ export default function HeroEvolutionVisual() {
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_15rem]">
-        <div className="grid gap-4 border-b border-edge p-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:border-b-0 lg:border-r">
+        <div className="grid gap-4 border-b border-edge/60 p-5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:border-b-0 lg:border-r">
           <PreviewPanel side={before} label="Current champion" />
           <div className="hidden items-center justify-center text-muted sm:flex">
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-edge bg-surface">
+            <span className="glass-inset grid h-10 w-10 place-items-center rounded-full shadow-sm">
               <ArrowRight size={18} />
             </span>
           </div>
           <PreviewPanel side={after} label="Winning challenger" highlight />
         </div>
 
-        <div className="grid gap-3 bg-surface px-4 py-4 sm:grid-cols-3 lg:grid-cols-1">
+        <div className="grid gap-3 bg-white/25 px-5 py-5 sm:grid-cols-3 lg:grid-cols-1">
           <StageMetric label="Decided by" value="Real GA4" />
           <StageMetric label="Segments" value="Per-source" />
           <StageMetric label="Goes live" value="On approval" accent />
@@ -77,10 +77,10 @@ function PreviewPanel({ side, label, highlight = false }) {
           </div>
         </div>
         <span
-          className={`rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums ${
+          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold tabular-nums ${
             highlight
               ? "border-win/25 bg-win/10 text-win"
-              : "border-edge bg-surface-2 text-muted"
+              : "border-edge/70 bg-white/50 text-muted"
           }`}
         >
           {side.metricLabel}
@@ -93,7 +93,7 @@ function PreviewPanel({ side, label, highlight = false }) {
 
 function StageMetric({ label, value, accent = false }) {
   return (
-    <div className="rounded-lg border border-edge bg-surface-2 px-3 py-3">
+    <div className="glass-inset rounded-xl px-3.5 py-3 shadow-sm">
       <div className="text-[11px] font-medium text-muted">{label}</div>
       <div
         className={`mt-1 text-lg font-semibold tabular-nums ${

@@ -1,20 +1,37 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Premium light palette (original cool palette) ──────────────────────
+     The premium-light DESIGN (serif headline, aurora depth, glassy cards,
+     softened motion) uses the ORIGINAL cool-neutral + teal colours. Tokens are
+     shared app-wide; the app views read white surfaces on the cool canvas and
+     stay clean. The aurora/glass/serif treatment below is scoped to the hero. */
+
+  /* Cool neutral canvas — original palette, layered for depth */
   --color-canvas: #f5f7f8;
+  --color-canvas-2: #eef2f4;
   --color-surface: #ffffff;
   --color-surface-2: #eef2f4;
-  --color-ink: #15202b;
   --color-panel: #ffffff;
   --color-panel-2: #eef2f4;
-  --color-edge: #d8e0e5;
+
+  /* Ink: original cool near-black */
+  --color-ink: #15202b;
   --color-muted: #66737f;
+  --color-edge: #d8e0e5;
+
+  /* Accent — original teal */
   --color-accent: #176b6b;
   --color-accent-strong: #115b5b;
-  --color-accent-2: #a15c16;
+  --color-accent-soft: #e3eeee; /* cool teal tint */
+  --color-accent-2: #a15c16; /* original secondary token */
+
   --color-win: #0f7a63;
   --color-lose: #b42318;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 html,
@@ -58,8 +75,8 @@ a,
     color 0.15s ease,
     background-color 0.15s ease,
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 button:focus-visible,
@@ -82,10 +99,11 @@ a:focus-visible,
   border-radius: 999px;
 }
 
+/* ── Hero motion ─────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -93,43 +111,86 @@ a:focus-visible,
   }
 }
 .animate-pop {
-  animation: fadeUp 0.35s ease-out both;
+  animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-stagger-1 {
-  animation-delay: 0ms;
+  animation-delay: 40ms;
 }
 .hero-stagger-2 {
-  animation-delay: 90ms;
+  animation-delay: 180ms;
 }
 .hero-stagger-3 {
-  animation-delay: 160ms;
+  animation-delay: 300ms;
 }
 
+/* ── Premium-light hero stage ──────────────────────────────────────────────
+   Warm layered canvas + a soft, low-saturation aurora mesh behind content.
+   Everything decorative is pointer-events:none and sits under the z-10 copy. */
 .hero-stage {
   position: relative;
   min-height: calc(100vh - 6.5rem);
+  isolation: isolate;
 }
 
-/* Soft brand glow behind the hero — decorative, sits under content. */
+/* Base warm wash — a gentle vertical paper gradient under the whole stage. */
+.hero-stage::after {
+  content: "";
+  position: absolute;
+  inset: -2rem -2rem 0;
+  pointer-events: none;
+  z-index: -2;
+  background: linear-gradient(
+    180deg,
+    var(--color-canvas) 0%,
+    color-mix(in srgb, var(--color-canvas-2), white 35%) 45%,
+    var(--color-canvas) 100%
+  );
+}
+
+/* Aurora mesh — three soft, low-saturation color blooms (sage, warm gold,
+   cool mist) layered for premium depth. Subtle, never loud. */
 .hero-stage::before {
   content: "";
   position: absolute;
-  top: -8rem;
-  left: -10rem;
-  width: 42rem;
-  height: 42rem;
+  inset: -8rem -6rem auto -8rem;
+  height: 46rem;
   pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--color-accent), transparent 88%),
-    transparent 70%
-  );
+  z-index: -1;
+  background:
+    radial-gradient(
+      40rem 32rem at 10% 4%,
+      color-mix(in srgb, var(--color-accent), transparent 82%),
+      transparent 70%
+    ),
+    radial-gradient(
+      36rem 28rem at 92% -2%,
+      color-mix(in srgb, var(--color-accent-strong), transparent 86%),
+      transparent 70%
+    ),
+    radial-gradient(
+      32rem 26rem at 64% 28%,
+      rgba(168, 196, 220, 0.26),
+      transparent 72%
+    );
+  filter: saturate(1.05);
+  animation: auroraDrift 18s ease-in-out infinite alternate;
+}
+
+@keyframes auroraDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5rem, 0.75rem, 0) scale(1.04);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pop {
+    animation: none;
+  }
+  .hero-stage::before {
     animation: none;
   }
 }
@@ -155,15 +216,39 @@ a:focus-visible,
   }
 }
 
+/* ── Glassy surfaces ───────────────────────────────────────────────────────
+   Translucent, backdrop-blurred panels with hairline borders and soft,
+   multi-stop shadows. Used by the hero product frame and key hero chips. */
+.glass {
+  background: color-mix(in srgb, var(--color-surface), transparent 28%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid color-mix(in srgb, var(--color-edge), white 40%);
+}
+
+.glass-inset {
+  background: color-mix(in srgb, var(--color-surface), transparent 40%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--color-edge), white 30%);
+}
+
 .hero-product-frame {
+  background: color-mix(in srgb, var(--color-surface), transparent 22%);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+  border: 1px solid color-mix(in srgb, var(--color-edge), white 45%);
+  border-radius: 1.25rem;
   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
     0 1px 2px rgba(21, 32, 43, 0.05),
-    0 18px 50px rgba(21, 32, 43, 0.10);
+    0 12px 28px rgba(21, 32, 43, 0.07),
+    0 36px 70px -20px rgba(23, 107, 107, 0.18);
 }
 
 .hero-loop {
   padding-top: 1rem;
-  border-top: 1px solid var(--color-edge);
+  border-top: 1px solid color-mix(in srgb, var(--color-edge), transparent 25%);
 }
 
 .walkthrough-rail {
@@ -173,5 +258,8 @@ a:focus-visible,
 @media (max-width: 640px) {
   .hero-stage {
     min-height: auto;
+  }
+  .hero-stage::before {
+    height: 32rem;
   }
 }
