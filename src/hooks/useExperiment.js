@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   makeVariant,
   emptyStats,
@@ -13,6 +13,13 @@ import {
 import { generateChallenger, probeAiAvailable } from "../lib/challenger.js";
 import { METRICS } from "../lib/metrics.js";
 import { buildDemoState, DEFAULT_CONFIG } from "../lib/demoSeed.js";
+import {
+  createApprovalGate,
+  approve as approveGate,
+  reject as rejectGate,
+  goLive as goLiveGate,
+  isLive as gateIsLive,
+} from "../lib/approval.js";
 
 const CONTROL_CONFIG = DEFAULT_CONFIG;
 
@@ -34,6 +41,16 @@ export function useExperiment() {
   const [history, setHistory] = useState([]); // completed rounds
   const [lastDecision, setLastDecision] = useState(null); // transient highlight
   const [challengerMeta, setChallengerMeta] = useState(null); // rationale/source of current challenger
+
+  // FR-D1 — explicit approval gate. A proposed challenger sits in this gate
+  // until the user approves; only then does the go-live seam (FR-D2/D3) run.
+  // `null` means no pending proposal (e.g. seeded demo, already-live state).
+  const [approvalGate, setApprovalGate] = useState(null);
+  // The injection + experiment-creation seam beagle-integrations fills for
+  // FR-D2/D3. Default: a safe local "go live" that flips the experiment to
+  // running. Replace via setGoLiveSeam without touching the gate logic.
+  //   seam({ proposal }) -> experimentRecord | Promise<experimentRecord>
+  const goLiveSeamRef = useRef(null);
 
   // Generation mode: simulated stub (default) vs real LLM. We also probe
   // whether the AI endpoint is actually wired up so the UI can reflect it.
@@ -122,11 +139,14 @@ export function useExperiment() {
         isControl: false,
       });
 
+      // FR-D1: do NOT go live here. The proposed challenger is parked in an
+      // approval gate; nothing is injected and no experiment runs until the
+      // user explicitly approves (Section 8: human-approved only).
       setExperiment((e) => ({
         ...e,
         name,
         goalMetric: metric,
-        status: "running",
+        status: "awaiting_approval",
         currentGeneration: 1,
       }));
       setVariants([control, challenger]);
@@ -138,9 +158,63 @@ export function useExperiment() {
         source: proposal.source,
         model: proposal.model,
       });
+      setApprovalGate(
+        createApprovalGate({
+          proposal: {
+            champion: control,
+            challenger,
+            goalMetric: metric,
+            rationale: proposal.rationale,
+            source: proposal.source,
+            // TODO(beagle-hypothesis, FR-C1): real one-paragraph hypothesis.
+            hypothesis: proposal.hypothesis ?? null,
+          },
+        })
+      );
     },
     [experiment.id, experiment.name, experiment.goalMetric, generationMode]
   );
+
+  // FR-D1/D2/D3 seam setter: integrations swap in the real injection +
+  // experiment-creation callback. Until then, the default below is used.
+  const setGoLiveSeam = useCallback((seam) => {
+    goLiveSeamRef.current = typeof seam === "function" ? seam : null;
+  }, []);
+
+  // Default go-live behaviour for the MVP shell: flip the experiment to
+  // "running" so the existing test→measure→decide loop takes over. The real
+  // FR-D2 (cookie injection) + FR-D3 (experiment creation/readout) replace this
+  // via setGoLiveSeam — they return the experiment record this records.
+  const defaultGoLive = useCallback(({ proposal }) => {
+    setExperiment((e) => ({ ...e, status: "running" }));
+    return {
+      id: `exp_${Date.now()}`,
+      goalMetric: proposal?.goalMetric ?? null,
+      // TODO(beagle-integrations, FR-D2/D3): real injection handle + analytics
+      // experiment id land here.
+      injection: { status: "stub", note: "local go-live; no real injection yet" },
+      createdAt: Date.now(),
+    };
+  }, []);
+
+  // Approve the pending proposal — the ONLY path that triggers go-live.
+  const approve = useCallback(async () => {
+    let approved = null;
+    setApprovalGate((g) => {
+      approved = approveGate(g);
+      return approved;
+    });
+    if (!approved) return { ok: false, reason: "no pending proposal" };
+    const seam = goLiveSeamRef.current ?? defaultGoLive;
+    const res = await goLiveGate(approved, seam);
+    if (res.ok) setApprovalGate(res.gate);
+    return res;
+  }, [defaultGoLive]);
+
+  // Reject the pending proposal — nothing is injected, no experiment created.
+  const rejectProposal = useCallback((reason = null) => {
+    setApprovalGate((g) => rejectGate(g, reason));
+  }, []);
 
   const startSeeded = useCallback(async () => {
     const seeded = buildDemoState({
@@ -156,6 +230,8 @@ export function useExperiment() {
     setHistory(seeded.history);
     setLastDecision(null);
     setChallengerMeta(seeded.challengerMeta);
+    // Seeded demo represents an already-running experiment — no pending gate.
+    setApprovalGate(null);
   }, [experiment.id, experiment.name, experiment.goalMetric]);
 
   const simulate = useCallback(
@@ -257,6 +333,7 @@ export function useExperiment() {
     setHistory([]);
     setLastDecision(null);
     setChallengerMeta(null);
+    setApprovalGate(null);
   }, []);
 
   const setGoalMetric = useCallback((metricId) => {
@@ -286,6 +363,13 @@ export function useExperiment() {
     generationMode,
     setGenerationMode,
     aiAvailable,
+    // FR-D1 approval gate
+    approvalGate,
+    approvalState: approvalGate?.state ?? null,
+    isLive: gateIsLive(approvalGate),
+    setGoLiveSeam, // FR-D2/D3 injection point for beagle-integrations
+    approve,
+    rejectProposal,
     // actions
     start,
     startSeeded,

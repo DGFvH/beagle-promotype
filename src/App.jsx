@@ -14,6 +14,7 @@ import { LogoMark } from "./components/Logo.jsx";
 import Hero from "./components/Hero.jsx";
 import Setup from "./components/Setup.jsx";
 import Dashboard from "./components/Dashboard.jsx";
+import ApprovalGate from "./components/ApprovalGate.jsx";
 import MethodologyModal from "./components/MethodologyModal.jsx";
 import WalkthroughRail from "./components/WalkthroughRail.jsx";
 
@@ -38,8 +39,9 @@ export default function App() {
 
   const { experiment, metric, history } = exp;
   const inSetup = experiment.status === "setup";
+  const awaitingApproval = experiment.status === "awaiting_approval";
   const showLanding = inSetup && showHero;
-  const presenterActive = !inSetup;
+  const presenterActive = !inSetup && !awaitingApproval;
 
   const setSafeWalkthroughIndex = useCallback((nextIndex) => {
     setWalkthroughIndex(
@@ -113,6 +115,20 @@ export default function App() {
     }
   };
 
+  const handleApprove = async () => {
+    setBusy(true);
+    try {
+      await exp.approve(); // only path to injection + experiment creation (FR-D1)
+      setTab("dashboard");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReject = () => {
+    exp.rejectProposal();
+  };
+
   const handleDecide = async () => {
     setBusy(true);
     try {
@@ -155,7 +171,7 @@ export default function App() {
     <div className="min-h-full bg-canvas">
       <Header
         exp={exp}
-        inSetup={inSetup}
+        inSetup={inSetup || awaitingApproval}
         showLanding={showLanding}
         tab={tab}
         setTab={setActiveTab}
@@ -195,6 +211,16 @@ export default function App() {
             defaultName={experiment.name}
             defaultMetric={experiment.goalMetric}
             onStart={handleStart}
+          />
+        ) : awaitingApproval ? (
+          <ApprovalGate
+            champion={exp.approvalGate?.proposal?.champion}
+            challenger={exp.approvalGate?.proposal?.challenger}
+            state={exp.approvalState ?? "pending"}
+            hypothesis={exp.approvalGate?.proposal?.hypothesis}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            busy={busy}
           />
         ) : tab === "dashboard" ? (
           <Dashboard exp={{ ...exp, decide: handleDecide }} auto={auto} busy={busy} />
