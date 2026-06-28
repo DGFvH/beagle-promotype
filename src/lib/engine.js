@@ -230,19 +230,92 @@ export function configAppeal(config, generation = 0) {
   return clamp01(base + drift);
 }
 
-// Turn appeal into the per-session behaviour for each metric.
-function simulateSession(variant, generation) {
-  const appeal = configAppeal(variant.config, generation);
+// ---------------------------------------------------------------------------
+// SEGMENT DIMENSION (FR-G2 heterogeneity)
+// ---------------------------------------------------------------------------
+// One real segment dimension so heterogeneity is genuine, not faked: visitors
+// arrive from a `trafficSource`. The hidden appeal of a config can vary per
+// segment, so a challenger can truly win for one segment and lose for another
+// (e.g. a video hero delights social traffic but slows down paid/intent
+// traffic). This is SYNTHETIC ground truth — it is replaced by real analytics
+// segment rows (FR-B2/FR-D3) at the analysis seam (see analysis.js). When real
+// rows land they feed the same analyzeRound/analyzeHeterogeneity functions; the
+// segment ids below map onto the analytics dimension (e.g. GA4 sessionSource).
+export const SEGMENT_DIMENSION = "trafficSource";
+export const SEGMENTS = [
+  { id: "organic", label: "Organic search", weight: 0.45 },
+  { id: "paid", label: "Paid ads", weight: 0.3 },
+  { id: "social", label: "Social", weight: 0.25 },
+];
+export const SEGMENT_IDS = SEGMENTS.map((s) => s.id);
 
+// Per-segment appeal modifiers. These tilt the hidden appeal of specific hero
+// attributes by segment so effects diverge. Kept small and bounded; the
+// aggregate (weighted across segments) still trends the same direction as the
+// base configAppeal, so collapsing segments reproduces the existing behaviour.
+//   segment -> attribute -> { optionValue: delta }
+const SEGMENT_APPEAL_MOD = {
+  organic: {},
+  // Paid/intent traffic is goal-directed: heavy media slows them down.
+  paid: { media: { video: -0.14, screenshot: -0.04, none: 0.03 } },
+  // Social traffic is browsing: rich media and a punchy headline land better.
+  social: {
+    media: { video: 0.16, illustration: 0.05 },
+    headline: { "Ship a hero that converts": 0.05 },
+  },
+};
+
+// Appeal of a config for a specific segment = base appeal + segment modifier.
+export function segmentAppeal(config, segmentId, generation = 0) {
+  const c = normalizeConfig(config);
+  const base = configAppeal(c, generation);
+  const mods = SEGMENT_APPEAL_MOD[segmentId] ?? {};
+  let delta = 0;
+  for (const attr of Object.keys(mods)) {
+    delta += mods[attr][c[attr]] ?? 0;
+  }
+  return clamp01(base + delta);
+}
+
+// --- deterministic RNG (seedable for tests) ---------------------------------
+// mulberry32: tiny, fast, good enough for synthetic traffic. A null/undefined
+// seed falls back to Math.random so existing non-seeded callers are unchanged.
+export function makeRng(seed) {
+  if (seed == null) return Math.random;
+  let a = seed >>> 0;
+  return function rng() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Box–Muller using an arbitrary uniform source, so a seeded RNG produces a
+// fully deterministic gaussian (time-to-action). Falls back to stats.gaussian
+// when no source is supplied (preserves the original non-seeded behaviour).
+function gaussianFrom(rnd, mu = 0, sigma = 1) {
+  if (rnd === Math.random) return gaussian(mu, sigma);
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = rnd();
+  while (v === 0) v = rnd();
+  const n = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  return mu + sigma * n;
+}
+
+// Turn appeal into the per-session behaviour for each metric. `appeal` is passed
+// in (segment-aware callers compute it per segment); `rnd` is the RNG (defaults
+// to Math.random so the original behaviour is preserved exactly).
+function sessionFromAppeal(appeal, rnd = Math.random) {
   // Click-through: a Bernoulli draw around the appeal.
-  const clicked = Math.random() < appeal;
-
+  const clicked = rnd() < appeal;
   // Conversion is rarer and conditional-ish on appeal.
-  const converted = Math.random() < appeal * 0.55;
-
+  const converted = rnd() < appeal * 0.55;
   // Time-to-action (seconds): more appeal => found faster. Floor + noise.
   const baseTime = 8.5 - appeal * 5.5; // ~3.5s (great) .. ~6.3s (poor)
-  const time = Math.max(0.6, gaussian(baseTime, 1.1));
+  const time = Math.max(0.6, gaussianFrom(rnd, baseTime, 1.1));
 
   return {
     id: uid("evt"),
@@ -251,6 +324,12 @@ function simulateSession(variant, generation) {
     time,
     timestamp: Date.now(),
   };
+}
+
+// Turn appeal into the per-session behaviour for each metric.
+function simulateSession(variant, generation) {
+  const appeal = configAppeal(variant.config, generation);
+  return sessionFromAppeal(appeal, Math.random);
 }
 
 // --- Public API --------------------------------------------------------------
@@ -297,6 +376,76 @@ export function simulateVisitors(count, variants, generation, statsByVariant) {
   }
 
   return next;
+}
+
+// Run `count` synthetic visitors split across variants AND segments, returning
+// per-variant per-segment accumulators: { [variantId]: { [segmentId]: stats } }.
+// Visitors are split by SEGMENTS weight, then round-robined across variants
+// inside each segment (keeps the variant split balanced per segment). Pass a
+// `seed` for deterministic output (tests); omit it for live randomness.
+//
+// This is the heterogeneity-aware sibling of simulateVisitors. collapseSegments
+// reduces the result to the exact flat shape simulateVisitors produces, so the
+// aggregate is provably unchanged when segments are collapsed (no regression).
+export function simulateVisitorsBySegment(count, variants, generation, opts = {}) {
+  const seed = opts.seed ?? null;
+  const rnd = makeRng(seed);
+  const out = {};
+  for (const v of variants) {
+    out[v.id] = {};
+    for (const seg of SEGMENT_IDS) out[v.id][seg] = emptyStats();
+  }
+
+  // Allocate the visitor count across segments by weight (largest-remainder so
+  // the totals always sum to `count`).
+  const rawCounts = SEGMENTS.map((s) => count * s.weight);
+  const segCounts = rawCounts.map(Math.floor);
+  let remainder = count - segCounts.reduce((a, b) => a + b, 0);
+  const order = rawCounts
+    .map((r, i) => ({ i, frac: r - Math.floor(r) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let k = 0; k < remainder; k++) segCounts[order[k % order.length].i] += 1;
+
+  SEGMENTS.forEach((seg, si) => {
+    const n = segCounts[si];
+    for (let i = 0; i < n; i++) {
+      const v = variants[i % variants.length];
+      const s = out[v.id][seg.id];
+      const appeal = segmentAppeal(v.config, seg.id, generation);
+      const evt = sessionFromAppeal(appeal, rnd);
+      s.visitors += 1;
+      if (evt.clicked) s.clicks += 1;
+      if (evt.converted) s.converts += 1;
+      if (evt.clicked) s.times.push(evt.time);
+    }
+  });
+
+  return out;
+}
+
+// Sum one variant's per-segment accumulators into a single flat stats object —
+// the same shape simulateVisitors / emptyStats produce. Collapsing all segments
+// must reproduce the aggregate (Section 6 no-regression).
+export function collapseVariantSegments(bySegment) {
+  const acc = emptyStats();
+  for (const seg of Object.keys(bySegment ?? {})) {
+    const s = bySegment[seg];
+    acc.visitors += s.visitors;
+    acc.clicks += s.clicks;
+    acc.converts += s.converts;
+    acc.times.push(...s.times);
+  }
+  return acc;
+}
+
+// Collapse a full { variantId: { segment: stats } } map to the flat
+// { variantId: stats } map the existing engine functions consume.
+export function collapseSegments(statsBySegment) {
+  const out = {};
+  for (const vid of Object.keys(statsBySegment ?? {})) {
+    out[vid] = collapseVariantSegments(statsBySegment[vid]);
+  }
+  return out;
 }
 
 // Does this variant have enough data to report the given metric yet?

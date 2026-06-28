@@ -13,6 +13,9 @@ import {
   defaultHeroConfig,
   isValidHeroConfig,
   HERO_DESIGN_SPACE,
+  simulateVisitorsBySegment,
+  collapseSegments,
+  SEGMENT_IDS,
 } from "../engine.js";
 import { buildDemoState, DEFAULT_CONFIG } from "../demoSeed.js";
 
@@ -101,6 +104,28 @@ describe("FR-A2 engine loop over the hero design space (no regression)", () => {
 
   it("DEFAULT_CONFIG baseline is a valid hero", () => {
     expect(isValidHeroConfig(DEFAULT_CONFIG)).toBe(true);
+  });
+
+  // FR-G2 segment simulation must not regress the core loop: the per-segment
+  // accumulators collapse to the same balanced, conserved flat aggregate the
+  // existing loop relies on, and the leader/confidence functions still work.
+  it("segment-aware simulation collapses to a valid flat aggregate", () => {
+    const champion = makeVariant({ experimentId: "t", generation: 1, label: "Champion", config: defaultHeroConfig(), isControl: true });
+    const challenger = makeVariant({ experimentId: "t", generation: 1, label: "Challenger", config: { ...defaultHeroConfig(), media: "video" }, isControl: false });
+    const variants = [champion, challenger];
+    const bySeg = simulateVisitorsBySegment(900, variants, 1, { seed: 5 });
+    // every variant has every segment.
+    for (const v of variants) {
+      expect(Object.keys(bySeg[v.id]).sort()).toEqual([...SEGMENT_IDS].sort());
+    }
+    const flat = collapseSegments(bySeg);
+    const total = variants.reduce((acc, v) => acc + flat[v.id].visitors, 0);
+    expect(total).toBe(900);
+    const leader = leadingVariantId("ctr", variants, flat);
+    expect([champion.id, challenger.id]).toContain(leader);
+    const conf = roundConfidence("ctr", variants, flat);
+    expect(conf).toBeGreaterThanOrEqual(0);
+    expect(conf).toBeLessThanOrEqual(1);
   });
 });
 

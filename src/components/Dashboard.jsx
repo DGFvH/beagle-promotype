@@ -1,7 +1,17 @@
-import { BarChart3, CheckCircle2, GitBranch, TrendingUp, Trophy, Wand2 } from "lucide-react";
+import {
+  BarChart3,
+  CheckCircle2,
+  GitBranch,
+  ShieldCheck,
+  TrendingUp,
+  Trophy,
+  Wand2,
+  XCircle,
+} from "lucide-react";
 import VariantCard, { SourceBadge } from "./VariantCard.jsx";
 import ControlBar from "./ControlBar.jsx";
 import GenerationModeToggle from "./GenerationModeToggle.jsx";
+import { hypothesisVerdict } from "../lib/analysis.js";
 
 export default function Dashboard({ exp, auto, busy }) {
   const {
@@ -23,12 +33,21 @@ export default function Dashboard({ exp, auto, busy }) {
     generationMode,
     setGenerationMode,
     aiAvailable,
+    variants,
+    stats,
   } = exp;
 
   const champion = variantViews.find((v) => v.isControl) ?? variantViews[0];
   const challenger = variantViews.find((v) => !v.isControl) ?? variantViews[1];
   const canDecide = totalVisitors > 0;
   const roundFull = roundProgress >= 1;
+
+  // FR-G1 (b): the confirm/reject decision, computed from the measured data
+  // (direction-aware via the metric model). Shown with the numbers behind it.
+  const verdict =
+    variants && variants.length >= 2 && totalVisitors > 0
+      ? hypothesisVerdict(metric.id, variants, stats)
+      : null;
 
   return (
     <div className="demo-screen space-y-3">
@@ -70,6 +89,8 @@ export default function Dashboard({ exp, auto, busy }) {
             lastDecision={lastDecision}
             onDismissDecision={clearDecision}
           />
+
+          {verdict && <VerdictPanel verdict={verdict} metric={metric} />}
 
           <ControlBar
             onSimulate={simulate}
@@ -274,6 +295,41 @@ function RoundPanel({
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+// FR-G1 (b): live confirm/reject of the challenger hypothesis with the numbers
+// behind it. The confidence figure is the engine's ROUGH indicator (Section 8) —
+// surfaced labelled as such, never as a production p-value.
+function VerdictPanel({ verdict, metric }) {
+  const fmt = (v) => (v == null ? "--" : metric.format(v));
+  const tone =
+    verdict.verdict === "confirmed"
+      ? { box: "border-win/30 bg-win/10", text: "text-win", Icon: ShieldCheck, label: "Hypothesis confirmed" }
+      : verdict.verdict === "rejected"
+        ? { box: "border-lose/30 bg-lose/10", text: "text-lose", Icon: XCircle, label: "Hypothesis rejected" }
+        : { box: "border-edge bg-surface-2", text: "text-muted", Icon: Wand2, label: "Inconclusive so far" };
+  const { Icon } = tone;
+
+  return (
+    <section className={`rounded-lg border p-3 shadow-sm ${tone.box}`}>
+      <div className="flex items-start gap-2">
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md bg-surface ${tone.text}`}>
+          <Icon size={17} />
+        </span>
+        <div className="min-w-0">
+          <h3 className={`text-sm font-semibold ${tone.text}`}>{tone.label}</h3>
+          <p className="mt-0.5 text-[12px] leading-snug text-muted">{verdict.reason}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <PanelStat label={`${verdict.championLabel} ${metric.short}`} value={fmt(verdict.championValue)} />
+        <PanelStat label={`${verdict.challengerLabel} ${metric.short}`} value={fmt(verdict.challengerValue)} />
+      </div>
+      <p className="mt-2 text-[10px] leading-snug text-muted">
+        {verdict.confidence.pct}% confidence — {verdict.confidence.label}.
+      </p>
     </section>
   );
 }

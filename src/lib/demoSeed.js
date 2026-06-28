@@ -1,4 +1,8 @@
-import { normalizeConfig, defaultHeroConfig } from "./engine.js";
+import {
+  normalizeConfig,
+  defaultHeroConfig,
+  simulateVisitorsBySegment,
+} from "./engine.js";
 
 export { normalizeConfig };
 
@@ -251,6 +255,50 @@ export const HERO_EVOLUTION = {
   after: { generation: 8, config: SEED_SCRIPT[7].challenger, metricLabel: "69% CTR" },
   delta: "+81%",
 };
+
+// ---------------------------------------------------------------------------
+// FR-G2 segment sample (clearly SIMULATION, not real analytics)
+// ---------------------------------------------------------------------------
+// A deterministic per-variant-per-segment dataset for surfacing the
+// heterogeneity breakdown in the views until real analytics segment rows land
+// (FR-B2/FR-D3). The challenger here is a video-media hero, which the engine's
+// segment ground truth makes a winner for "social" but a loser for "paid" — so
+// the breakdown genuinely diverges from the aggregate. Seeded, so it is stable
+// across renders and tests.
+//
+// Returns { variants:[{id,label,config,isControl}], statsBySegment } where
+// statsBySegment matches simulateVisitorsBySegment's shape and feeds analysis.js.
+export function buildSegmentSample({ goalMetric = "ctr", seed = 1337 } = {}) {
+  const champion = {
+    id: "seg_champion",
+    label: "Champion",
+    isControl: true,
+    config: normalizeConfig({
+      headline: "Turn visitors into customers",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "screenshot",
+    }),
+  };
+  const challenger = {
+    id: "seg_challenger",
+    label: "Challenger",
+    isControl: false,
+    config: normalizeConfig({
+      headline: "Ship a hero that converts",
+      subheadline: "Evidence-based hero optimization, on autopilot.",
+      ctaLabel: "Start free trial",
+      ctaStyle: "solid",
+      layout: "center",
+      media: "video",
+    }),
+  };
+  const variants = [champion, challenger];
+  const statsBySegment = simulateVisitorsBySegment(2400, variants, 9, { seed });
+  return { goalMetric, variants, statsBySegment, isSimulated: true };
+}
 
 /**
  * Build a fully populated experiment state for the demo.
