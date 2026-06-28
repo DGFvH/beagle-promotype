@@ -67,6 +67,25 @@ Pure, network-free cores live under `api/_lib/` (`source.js`, `checkPage.js`,
 Client orchestration for sources is under `src/lib/sources/` (GitHub wired;
 WordPress/Framer stubbed "coming soon" — drop-in extension points).
 
+## Persistence (`src/lib/db/` + `supabase/`)
+
+Optional Supabase Postgres persistence backs FR-D2 (cookie assignment), FR-D3
+(experiments + results), FR-B (analytics results), FR-E1 (token spend) and FR-F
+(guardrails). It is OFF unless its env vars are set; with no creds Beagle falls
+back to the in-memory stores (no behaviour change).
+
+- `supabase/migrations/0001_init.sql` — schema (projects, source_connections,
+  guardrails, experiments, variant_assignments, results, token_spend) with RLS
+  enabled. Apply with `supabase db push` or paste into the Supabase SQL Editor.
+- `src/lib/db/supabaseClient.js` — server (service_role, `api/`-only, bypasses
+  RLS) and client (anon) clients; `isSupabaseConfigured()` is the on/off switch.
+- `src/lib/db/repositories.js` — repository interface + factory: returns the
+  Supabase-backed repo when configured, else the in-memory repo. Existing callers
+  are NOT rewired yet (documented TODO for the local instance). The service_role
+  key is server-side only and is verified absent from `dist/`.
+- Secrets (GitHub tokens, GA4/Looker creds) are NEVER stored in plaintext;
+  `source_connections.secret_ref` is a seam pointing at Supabase Vault.
+
 ## Tests
 
 `npm test` runs the Vitest suite (`src/lib/__tests__/`). Every `auto`
@@ -78,6 +97,9 @@ See [.env.example](.env.example). Key vars:
 
 - `VITE_SITE_URL` - absolute URL for link previews on Vercel
 - `LLM_API_KEY` - optional; enables AI evolution mode
+- `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` - optional;
+  enable Postgres persistence (service-role key is server-side only)
+- `SUPABASE_ACCESS_TOKEN` - optional; for CLI migrations (`supabase db push`)
 
 ## Explicitly Out of Scope
 
