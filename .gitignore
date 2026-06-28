@@ -10,3 +10,4 @@ dist-ssr
 .DS_Store
 npm-debug.log*
 dev-server.*.log
+smoke-artifacts
