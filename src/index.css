@@ -118,10 +118,37 @@ a:focus-visible,
   animation-delay: 40ms;
 }
 .hero-stagger-2 {
-  animation-delay: 180ms;
+  animation-delay: 140ms;
 }
 .hero-stagger-3 {
-  animation-delay: 300ms;
+  animation-delay: 240ms;
+}
+.hero-stagger-4 {
+  animation-delay: 340ms;
+}
+
+/* Floating accent chips around the product centerpiece — a slow vertical bob
+   that reads as "live" without being noisy. Decorative; respects reduced motion. */
+@keyframes chipFloat {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-7px);
+  }
+}
+.hero-chip-float {
+  animation: chipFloat 4.5s ease-in-out infinite alternate;
+}
+.hero-chip-float-2 {
+  animation: chipFloat 5.5s ease-in-out infinite alternate;
+  animation-delay: 0.8s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-chip-float,
+  .hero-chip-float-2 {
+    animation: none;
+  }
 }
 
 /* ── Premium-light hero stage ──────────────────────────────────────────────
@@ -133,47 +160,55 @@ a:focus-visible,
   isolation: isolate;
 }
 
-/* Base warm wash — a gentle vertical paper gradient under the whole stage. */
+/* Base wash + a faint dotted grid across the whole stage. The grid gives the
+   composition real "designed" texture (vs a flat tint); it sits under content. */
 .hero-stage::after {
   content: "";
   position: absolute;
   inset: -2rem -2rem 0;
   pointer-events: none;
   z-index: -2;
-  background: linear-gradient(
-    180deg,
-    var(--color-canvas) 0%,
-    color-mix(in srgb, var(--color-canvas-2), white 35%) 45%,
-    var(--color-canvas) 100%
-  );
+  background-color: var(--color-canvas);
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-canvas-2), white 35%) 0%,
+      var(--color-canvas) 60%
+    ),
+    radial-gradient(
+      color-mix(in srgb, var(--color-accent), transparent 86%) 1px,
+      transparent 1.4px
+    );
+  background-size:
+    100% 100%,
+    22px 22px;
+  background-position:
+    center,
+    center;
 }
 
-/* Aurora mesh — three soft, low-saturation color blooms (sage, warm gold,
-   cool mist) layered for premium depth. Subtle, never loud. */
+/* Radial teal glow — anchored to the RIGHT, behind the product centerpiece, so
+   the panel reads as raised out of a pool of accent light. Restrained, not loud. */
 .hero-stage::before {
   content: "";
   position: absolute;
-  inset: -8rem -6rem auto -8rem;
+  inset: -6rem -6rem auto auto;
+  width: 52rem;
   height: 46rem;
   pointer-events: none;
   z-index: -1;
   background:
     radial-gradient(
-      40rem 32rem at 10% 4%,
-      color-mix(in srgb, var(--color-accent), transparent 82%),
-      transparent 70%
+      34rem 30rem at 78% 34%,
+      color-mix(in srgb, var(--color-accent), transparent 74%),
+      transparent 68%
     ),
     radial-gradient(
-      36rem 28rem at 92% -2%,
-      color-mix(in srgb, var(--color-accent-strong), transparent 86%),
+      26rem 24rem at 96% 6%,
+      color-mix(in srgb, var(--color-accent-strong), transparent 82%),
       transparent 70%
-    ),
-    radial-gradient(
-      32rem 26rem at 64% 28%,
-      rgba(168, 196, 220, 0.26),
-      transparent 72%
     );
-  filter: saturate(1.05);
+  filter: saturate(1.08);
   animation: auroraDrift 18s ease-in-out infinite alternate;
 }
 
@@ -234,16 +269,100 @@ a:focus-visible,
 }
 
 .hero-product-frame {
-  background: color-mix(in srgb, var(--color-surface), transparent 22%);
+  background: color-mix(in srgb, var(--color-surface), transparent 18%);
   -webkit-backdrop-filter: blur(18px) saturate(1.12);
   backdrop-filter: blur(18px) saturate(1.12);
   border: 1px solid color-mix(in srgb, var(--color-edge), white 45%);
   border-radius: 1.25rem;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
     0 1px 2px rgba(21, 32, 43, 0.05),
     0 12px 28px rgba(21, 32, 43, 0.07),
     0 36px 70px -20px rgba(23, 107, 107, 0.18);
+}
+
+/* ── Hero showcase (right-column centerpiece) ──────────────────────────────
+   The product frame is raised on a pedestal: a subtle 3D tilt, deep layered
+   shadow, and a hairline glass ring. This is what makes it read as a floating
+   product shot rather than a flat card sitting in the column. */
+.hero-showcase {
+  position: relative;
+}
+.hero-showcase-panel {
+  position: relative;
+  z-index: 1;
+  border-radius: 1.4rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 4px rgba(21, 32, 43, 0.05),
+    0 18px 40px -12px rgba(21, 32, 43, 0.18),
+    0 50px 90px -28px rgba(23, 107, 107, 0.32);
+  transform: perspective(1800px) rotateY(-4deg) rotateX(1.4deg);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero-showcase:hover .hero-showcase-panel {
+  transform: perspective(1800px) rotateY(-1.5deg) rotateX(0.6deg)
+    translateY(-4px);
+}
+/* Soft reflected pedestal under the panel. */
+.hero-showcase-panel::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -2.2rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(23, 107, 107, 0.22),
+    transparent 80%
+  );
+  filter: blur(6px);
+  z-index: -1;
+}
+
+/* Floating accent chips that sit on top of / around the showcase. */
+.hero-float-chip {
+  background: color-mix(in srgb, var(--color-surface), transparent 8%);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid color-mix(in srgb, var(--color-edge), white 30%);
+  box-shadow:
+    0 1px 2px rgba(21, 32, 43, 0.06),
+    0 14px 30px -12px rgba(21, 32, 43, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-showcase-panel {
+    transform: none;
+  }
+  .hero-showcase:hover .hero-showcase-panel {
+    transform: translateY(-2px);
+  }
+}
+
+/* Below the lg breakpoint the tilt fights the stacked layout — flatten it so
+   mobile stays clean and never overflows. */
+@media (max-width: 1023px) {
+  .hero-showcase-panel {
+    transform: none;
+  }
+  .hero-showcase:hover .hero-showcase-panel {
+    transform: translateY(-2px);
+  }
+}
+
+/* Subtle teal accent underline on the headline keyword. */
+.hero-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.04em;
+  height: 0.12em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent), transparent 55%);
 }
 
 .hero-loop {
@@ -260,6 +379,8 @@ a:focus-visible,
     min-height: auto;
   }
   .hero-stage::before {
-    height: 32rem;
+    inset: -4rem -4rem auto auto;
+    width: 30rem;
+    height: 30rem;
   }
 }
