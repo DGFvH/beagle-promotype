@@ -3,6 +3,7 @@ import {
   makeVariant,
   emptyStats,
   simulateVisitors,
+  simulateVisitorsBySegment,
   metricValue,
   roundConfidence,
   leadingVariantId,
@@ -11,6 +12,8 @@ import {
   normalizeConfig,
 } from "../lib/engine.js";
 import { generateChallenger, probeAiAvailable } from "../lib/challenger.js";
+import { analyzeHeterogeneity, perSegmentRecommendations } from "../lib/analysis.js";
+import { toServingPlan } from "../lib/serving.js";
 import { METRICS } from "../lib/metrics.js";
 import { buildDemoState, DEFAULT_CONFIG } from "../lib/demoSeed.js";
 import { loadCurrentHero } from "../lib/engine.js";
@@ -122,6 +125,36 @@ export function useExperiment() {
       better: pct >= 0,
     };
   }, [history, goal]);
+
+  // FR-G2 / FR-H2 / FR-H3 — per-segment (heterogeneity) analysis for the current
+  // round's variants. Until real analytics segment rows land (FR-B2/FR-D3) this
+  // runs over a SEEDED SIMULATION (simulateVisitorsBySegment) and is flagged
+  // `isSimulated: true` so the views NEVER present it as live analytics
+  // (Section 6). When the real analytics adapter emits the same
+  // { [variantId]: { [segmentId]: stats } } shape, swap the source here and the
+  // analysis functions (analyzeHeterogeneity/perSegmentRecommendations) and the
+  // serving plan consume it unchanged.
+  const segmentAnalysis = useMemo(() => {
+    if (variants.length < 2) return null;
+    // Deterministic per-generation seed: stable across renders, evolves each gen.
+    const seed = 1337 + experiment.currentGeneration;
+    const statsBySegment = simulateVisitorsBySegment(
+      2400,
+      variants,
+      experiment.currentGeneration,
+      { seed }
+    );
+    const heterogeneity = analyzeHeterogeneity(goal, variants, statsBySegment);
+    const recommendations = perSegmentRecommendations(goal, variants, statsBySegment);
+    return {
+      isSimulated: true, // not real analytics yet — clearly labelled in the UI
+      statsBySegment,
+      heterogeneity,
+      recommendations,
+      // FR-H3 (display): the "serve variant X to segment A" serving plan.
+      servingPlan: toServingPlan(recommendations),
+    };
+  }, [variants, goal, experiment.currentGeneration]);
 
   // --- actions ---------------------------------------------------------------
 
@@ -384,6 +417,9 @@ export function useExperiment() {
     roundTarget: ROUND_TARGET,
     leaderId,
     confidence,
+    // FR-G2/FR-H2/FR-H3 per-segment (heterogeneity) analysis for the current
+    // round (simulated until real analytics rows land — see segmentAnalysis).
+    segmentAnalysis,
     // FR-A1/FR-A3 connected source + located hero baseline
     connectedSource,
     currentHero,

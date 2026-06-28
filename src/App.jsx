@@ -19,11 +19,13 @@ import ApprovalGate from "./components/ApprovalGate.jsx";
 import MethodologyModal from "./components/MethodologyModal.jsx";
 import WalkthroughRail from "./components/WalkthroughRail.jsx";
 
-const Timeline = lazy(() => import("./components/Timeline.jsx"));
+// FR-H2 advanced data view (lineage + segment breakdown + serving plan). Lazy
+// so the recharts chunk it pulls in via Timeline stays deferred as before.
+const AdvancedView = lazy(() => import("./components/AdvancedView.jsx"));
 
-// Warm the lineage chart chunk when the populated demo loads.
+// Warm the advanced-view (lineage chart) chunk when the populated demo loads.
 function preloadTimeline() {
-  import("./components/Timeline.jsx");
+  import("./components/AdvancedView.jsx");
 }
 
 export default function App() {
@@ -234,7 +236,11 @@ export default function App() {
           <Dashboard exp={{ ...exp, decide: handleDecide }} auto={auto} busy={busy} />
         ) : (
           <Suspense fallback={<ChartLoading />}>
-            <Timeline history={history} metric={metric} />
+            <AdvancedView
+              history={history}
+              metric={metric}
+              segmentAnalysis={exp.segmentAnalysis}
+            />
           </Suspense>
         )}
       </main>
@@ -307,7 +313,7 @@ function Header({
                 </TabBtn>
                 <TabBtn active={tab === "timeline"} onClick={() => setTab("timeline")}>
                   <GitBranch size={14} />
-                  <span className="hidden sm:inline">Lineage</span>
+                  <span className="hidden sm:inline">Advanced</span>
                   {history.length > 0 && (
                     <span className="rounded bg-edge px-1.5 text-[10px] font-medium text-muted">
                       {history.length}

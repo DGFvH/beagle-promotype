@@ -8,12 +8,9 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import { useMemo } from "react";
-import { GitBranch, Layers, Trophy, AlertTriangle } from "lucide-react";
+import { GitBranch, Trophy } from "lucide-react";
 import ConfigChips from "./ConfigChips.jsx";
 import { SourceBadge } from "./VariantCard.jsx";
-import { analyzeHeterogeneity, perSegmentRecommendations } from "../lib/analysis.js";
-import { buildSegmentSample } from "../lib/demoSeed.js";
 
 export default function Timeline({ history, metric }) {
   if (!history.length) {
@@ -132,121 +129,6 @@ export default function Timeline({ history, metric }) {
             <LineageRow key={r.generation} round={r} metric={metric} />
           ))}
         </ol>
-      </div>
-
-      <SegmentBreakdown metric={metric} />
-    </div>
-  );
-}
-
-// FR-G2 / FR-H2: heterogeneity breakdown by segment, plus the per-segment winner
-// recommendation that feeds FR-H3. This currently runs over a SEEDED SIMULATION
-// (clearly labelled) until real analytics segment rows are wired (FR-B2/FR-D3) —
-// at which point the same analyzeHeterogeneity/perSegmentRecommendations
-// functions consume the live rows unchanged.
-//
-// TODO(beagle-ui-ux, FR-H2/FR-H3): promote this into the dedicated advanced
-// data view and the "unique hero per target group" view. The data contract is
-// the array returned by perSegmentRecommendations() (see src/lib/analysis.js):
-//   [{ dimension, segment, segmentLabel, winnerVariantId, winnerLabel,
-//      winnerConfig, metricId, metricValue, confidence, divergesFromAggregate }]
-function SegmentBreakdown({ metric }) {
-  const { het, recs } = useMemo(() => {
-    const sample = buildSegmentSample({ goalMetric: metric.id });
-    return {
-      het: analyzeHeterogeneity(metric.id, sample.variants, sample.statsBySegment),
-      recs: perSegmentRecommendations(metric.id, sample.variants, sample.statsBySegment),
-    };
-  }, [metric.id]);
-
-  return (
-    <div className="rounded-lg border border-edge bg-surface p-5 shadow-sm">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-md bg-accent/10 text-accent">
-            <Layers size={19} />
-          </span>
-          <div>
-            <h3 className="text-base font-semibold text-ink">
-              Heterogeneity by {het.dimension}
-            </h3>
-            <p className="text-sm text-muted">
-              Per-segment winners for {metric.short}. A flat aggregate can hide a
-              segment that prefers the other hero.
-            </p>
-          </div>
-        </div>
-        <span className="rounded-md border border-amber-300/40 bg-amber-100/40 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-          Simulation — not live analytics yet
-        </span>
-      </div>
-
-      <div className="mt-4 grid gap-2 md:grid-cols-3">
-        {het.segments.map((s) => (
-          <div
-            key={s.segment}
-            className={`rounded-lg border p-3 ${
-              s.divergesFromAggregate
-                ? "border-amber-300 bg-amber-50/60"
-                : "border-edge bg-surface-2"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-ink">{s.segmentLabel}</span>
-              {s.divergesFromAggregate && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
-                  title="This segment's winner differs from the overall winner."
-                >
-                  <AlertTriangle size={11} />
-                  diverges
-                </span>
-              )}
-            </div>
-            <div className="mt-2 space-y-1">
-              {s.values.map((v) => (
-                <div
-                  key={v.variantId}
-                  className={`flex items-center justify-between text-[12px] ${
-                    v.variantId === s.winnerVariantId
-                      ? "font-semibold text-ink"
-                      : "text-muted"
-                  }`}
-                >
-                  <span className="truncate">{v.label}</span>
-                  <span className="tabular-nums">
-                    {v.hasData ? metric.format(v.value) : "no data"}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 text-[10px] text-muted">
-              Winner: {s.winnerLabel ?? "--"} / {s.confidence.pct}% conf (rough)
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 rounded-md border border-edge bg-surface-2 p-3">
-        <div className="text-[11px] font-semibold text-muted">
-          Recommended hero per target group (feeds FR-H3)
-        </div>
-        <ul className="mt-1.5 space-y-1 text-[12px] text-ink">
-          {recs.map((r) => (
-            <li key={r.segment} className="flex flex-wrap items-center gap-1.5">
-              <span className="font-medium">{r.segmentLabel}</span>
-              <span className="text-muted">-&gt; serve</span>
-              <span className="rounded border border-edge bg-surface px-1.5 py-0.5 font-semibold">
-                {r.winnerLabel}
-              </span>
-              {r.divergesFromAggregate && (
-                <span className="text-[10px] font-semibold text-amber-700">
-                  (overrides aggregate winner)
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

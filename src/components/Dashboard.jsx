@@ -63,7 +63,14 @@ export default function Dashboard({ exp, auto, busy }) {
       />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_19rem]">
-        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+        <div className="min-w-0">
+          {/* FR-H1: one view pairing the hero (champion AND challenger)
+              previews with the live metric data for the chosen metric. */}
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-muted">
+            <Trophy size={13} />
+            Hero + {metric.short} data
+          </div>
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
           {champion && (
             <VariantCard view={champion} metric={metric} isChallenger={false} />
           )}
@@ -75,6 +82,7 @@ export default function Dashboard({ exp, auto, busy }) {
               meta={challengerMeta}
             />
           )}
+          </div>
         </div>
 
         <aside className="space-y-3">
