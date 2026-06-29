@@ -1,12 +1,16 @@
 import { useEffect, useRef } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   BarChart3,
   BookOpen,
+  CheckCircle2,
   Database,
   FileText,
+  Gauge,
   GitBranch,
   LineChart,
+  Link2,
   MousePointerClick,
   PlayCircle,
   Plug,
@@ -17,58 +21,72 @@ import {
 } from "lucide-react";
 import { LogoMark } from "./Logo.jsx";
 
-const LOOP = ["Connect", "Propose", "Approve", "Run", "Learn"];
+const LOOP = ["Connect", "Analyze", "Propose", "Approve", "Run", "Learn"];
 
 const SIGNALS = [
-  { label: "Hero baseline", value: "38%", detail: "seeded CTR before the loop" },
-  { label: "Winning hero", value: "69%", detail: "after eight decisions" },
-  { label: "Hidden split", value: "3x", detail: "segment winners exposed" },
+  { label: "URL to first test", value: "<1h", detail: "analysis, variant, approval" },
+  { label: "Demo lift", value: "+31pts", detail: "CTR after eight loop decisions" },
+  { label: "Segment reversal", value: "3x", detail: "different winners exposed" },
+];
+
+const STACK_ITEMS = [
+  { icon: Plug, label: "Source", value: "GitHub, WordPress, Framer" },
+  { icon: Database, label: "Analytics", value: "GA4 or Looker readout" },
+  { icon: ShieldCheck, label: "Control", value: "Human approval before launch" },
+  { icon: Users, label: "Audience", value: "Segment-level winners" },
 ];
 
 const PROBLEM_POINTS = [
   {
     icon: AlertTriangle,
-    title: "Hero decisions are still subjective",
-    text: "Teams debate headline, CTA, proof, layout, and media without a clean way to prove which change moved the KPI.",
+    title: "Targeted traffic hits one static hero",
+    text: "Ads, organic search, AI referrals, and mobile visitors arrive with different intent, but most landing pages answer them with the same above-the-fold message.",
   },
   {
     icon: BarChart3,
-    title: "Manual tests move too slowly",
-    text: "Briefing, implementation, QA, analytics setup, and reporting make teams test less than the hero deserves.",
+    title: "Manual CRO turns every variant into a project",
+    text: "Research, copy, design, build, QA, analytics setup, and reporting slow the loop until teams only test the safest ideas.",
   },
   {
     icon: Users,
-    title: "Averages hide audience behavior",
-    text: "A challenger can win overall while losing for paid traffic, mobile visitors, or another segment you care about.",
+    title: "Average lift can ship the wrong message",
+    text: "A challenger can win overall while quietly hurting paid traffic, enterprise buyers, mobile users, or another audience that matters.",
   },
 ];
 
 const FLOW = [
   {
-    icon: Plug,
-    title: "Connect the page",
-    text: "GitHub, WordPress, or Framer source. Claude checks that the hero can be found.",
+    icon: Link2,
+    title: "Analyze the live hero",
+    text: "Connect the URL or source. Beagle detects the hero, current message, CTA, and page constraints.",
   },
   {
     icon: Database,
-    title: "Load analytics",
-    text: "GA4 or Looker metrics become the source for CTR, conversion, and segment readout.",
+    title: "Read the metric source",
+    text: "GA4 or Looker becomes the source for CTR, conversion, audience cuts, and experiment evidence.",
   },
   {
     icon: Sparkles,
-    title: "Generate a hypothesis",
-    text: "Claude proposes a hero variant inside your style guide, legal limits, and do-not-change list.",
+    title: "Generate a governed variant",
+    text: "Claude proposes copy, layout, and CTA changes inside the style guide, legal limits, and do-not-change list.",
   },
   {
     icon: ShieldCheck,
-    title: "Approve before launch",
-    text: "Nothing ships until a human approves the exact change and hypothesis.",
+    title: "Approve before anything goes live",
+    text: "A human reviews the exact hypothesis and diff. The agent cannot publish unapproved hero changes.",
   },
   {
     icon: GitBranch,
-    title: "Run and learn",
-    text: "Cookie-based assignment keeps visitors sticky while Beagle reads back the result and queues the next test.",
+    title: "Run, segment, and learn",
+    text: "Sticky traffic assignment keeps the test clean while Beagle reads aggregate and heterogeneous results.",
   },
+];
+
+const COCKPIT_STEPS = [
+  { label: "Hero detected", detail: "headline, proof, CTA, media", status: "done" },
+  { label: "Variant proposed", detail: "on-brand copy and layout diff", status: "done" },
+  { label: "Approval gate", detail: "waiting for human review", status: "review" },
+  { label: "Segment readout", detail: "traffic-source winners queued", status: "next" },
 ];
 
 const SEGMENTS = [
@@ -116,7 +134,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
       className="hero-stage flex w-full flex-col overflow-hidden"
     >
       <div className="hero-scroll-stack">
-        <section className="hero-panel hero-panel-first grid items-center py-10 lg:py-14">
+        <section className="hero-panel hero-panel-first grid items-center gap-8 py-10 lg:grid-cols-[minmax(0,0.98fr)_minmax(22rem,0.82fr)] lg:py-14">
           <div className="relative z-10 min-w-0">
             <div className="animate-pop hero-stagger-1">
               <span className="hero-eyebrow inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold text-ink shadow-sm">
@@ -125,7 +143,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
                 <span className="h-3.5 w-px bg-edge" aria-hidden />
                 <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent">
                   <Sparkles size={12} aria-hidden />
-                  Hero optimization loop
+                  Governed hero optimization
                 </span>
               </span>
             </div>
@@ -134,31 +152,32 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               id="hero-heading"
               className="hero-headline animate-pop hero-stagger-1 mt-6 text-balance font-sans font-semibold text-ink"
             >
-              Stop guessing which hero converts.
+              Make your landing-page hero learn by audience.
             </h1>
 
             <p className="animate-pop hero-stagger-2 mt-5 max-w-3xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
-              Beagle connects your page and analytics, lets Claude propose a
-              guardrailed hero test, waits for approval, runs sticky A/B traffic,
-              and shows when the average winner is hiding a segment-specific loser.
+              Connect a URL and analytics. Beagle analyzes the current hero,
+              asks Claude for on-brand variants, holds every change for approval,
+              runs sticky A/B traffic, and exposes when the average winner is
+              hiding a segment-specific loser.
             </p>
 
             <div className="animate-pop hero-stagger-3 mt-7 flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
-                onClick={onStart}
+                onClick={onConfigure}
                 className="btn-primary inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold shadow-[0_8px_22px_-8px_rgba(36,87,72,0.55)] hover:-translate-y-0.5"
               >
-                <PlayCircle size={18} />
-                Watch the loop
+                <Gauge size={18} />
+                Analyze my hero
               </button>
               <button
                 type="button"
-                onClick={onConfigure}
+                onClick={onStart}
                 className="glass inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-ink shadow-sm hover:-translate-y-0.5"
               >
-                <Plug size={17} />
-                Connect a page
+                <PlayCircle size={17} />
+                Watch the loop
               </button>
               <button
                 type="button"
@@ -170,13 +189,19 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               </button>
             </div>
 
-            <div className="animate-pop hero-stagger-4 mt-8 grid max-w-4xl gap-2 sm:grid-cols-3">
+            <div className="animate-pop hero-stagger-4 mt-8 grid max-w-5xl gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {STACK_ITEMS.map((item) => (
+                <StackPill key={item.label} item={item} />
+              ))}
+            </div>
+
+            <div className="animate-pop hero-stagger-5 mt-5 grid max-w-4xl gap-2 sm:grid-cols-3">
               {SIGNALS.map((signal) => (
                 <SignalCard key={signal.label} signal={signal} />
               ))}
             </div>
 
-            <div className="hero-loop animate-pop hero-stagger-5 mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
+            <div className="hero-loop animate-pop hero-stagger-5 mt-7 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
               <span className="font-semibold uppercase text-muted">The loop</span>
               {LOOP.map((step, i) => (
                 <span key={step} className="inline-flex items-center gap-2">
@@ -187,12 +212,13 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             </div>
           </div>
 
+          <HeroCockpit />
         </section>
 
         <ScrollSection
           kicker="Problem"
-          title="The highest-impact section is usually changed by taste."
-          text="If the hero fails, the rest of the page barely gets a chance. But most teams still choose hero changes in meetings, then struggle to connect the result back to real visitor behavior."
+          title="Your acquisition traffic is targeted. Your hero usually is not."
+          text="Modern growth teams segment ads, audiences, channels, and intent. The landing hero is often still one static bet. Beagle closes that gap by turning hero work into approved experiments tied to visitor behavior."
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(24rem,1.05fr)]">
             <div className="grid gap-3">
@@ -206,8 +232,8 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
         <ScrollSection
           kicker="How Beagle works"
-          title="A closed loop from source code to experiment evidence."
-          text="Beagle turns hero work into a repeatable operating system: source connection, analytics, Claude hypothesis, approval, sticky traffic assignment, and readout."
+          title="Analyze the URL. Approve the variant. Let the loop keep learning."
+          text="The operating model is closer to modern AI CRO than a page builder: Beagle connects to your stack, generates controlled changes, keeps a human in the loop, and reports what worked by audience."
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <FlowRail />
@@ -217,8 +243,8 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
         <ScrollSection
           kicker="Data depth"
-          title="Heterogeneity is the point: one winner is not always one winner."
-          text="Beagle flags when aggregate lift hides opposing segment behavior. That is where the next test becomes useful: keep the winning hero for one audience, protect another audience from a variant that hurts them, and turn the finding into the next approved experiment."
+          title="Heterogeneity is not an edge case. It is the product insight."
+          text="Beagle flags when aggregate lift hides opposing segment behavior. That is where optimization becomes useful: ship the winning hero where it wins, protect the audience it hurts, and turn the split into the next approved experiment."
           contrast
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
@@ -231,6 +257,19 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
   );
 }
 
+function StackPill({ item }) {
+  const Icon = item.icon;
+  return (
+    <div className="hero-stack-pill rounded-lg border border-edge bg-surface/85 px-3 py-3 shadow-sm">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase text-muted">
+        <Icon size={14} className="text-accent" />
+        {item.label}
+      </div>
+      <div className="mt-1 text-sm font-semibold leading-snug text-ink">{item.value}</div>
+    </div>
+  );
+}
+
 function SignalCard({ signal }) {
   return (
     <div className="rounded-lg border border-edge bg-surface/80 px-4 py-3 shadow-sm">
@@ -239,6 +278,117 @@ function SignalCard({ signal }) {
       </div>
       <div className="mt-1 text-xs font-semibold text-ink">{signal.label}</div>
       <div className="mt-1 text-[11px] leading-snug text-muted">{signal.detail}</div>
+    </div>
+  );
+}
+
+function HeroCockpit() {
+  return (
+    <aside
+      className="hero-cockpit animate-pop hero-stagger-4 relative z-10"
+      aria-label="Hero optimization product preview"
+    >
+      <div className="hero-product-frame overflow-hidden p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted">Live optimization cockpit</div>
+            <h2 className="mt-1 text-xl font-semibold leading-tight text-ink">
+              One URL becomes a governed test loop.
+            </h2>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-win/10 px-2.5 py-1 text-[11px] font-semibold text-win">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-win" aria-hidden />
+            Ready
+          </span>
+        </div>
+
+        <div className="hero-url-strip mt-5 flex items-center gap-2 rounded-lg border border-edge bg-surface-2 px-3 py-2">
+          <Link2 size={16} className="shrink-0 text-accent" />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+            https://site.com/pricing
+          </span>
+          <span className="rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white">
+            Analyze
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <MiniMetric label="Baseline CTR" value="38%" />
+          <MiniMetric label="Current best" value="69%" accent />
+          <MiniMetric label="Segments read" value="3" />
+        </div>
+
+        <div className="mt-5 rounded-lg border border-edge bg-surface p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase text-muted">Audience fit</div>
+              <div className="mt-1 text-sm font-semibold text-ink">
+                The average winner is not the same winner everywhere.
+              </div>
+            </div>
+            <Users size={20} className="text-accent" />
+          </div>
+          <div className="mt-4 grid gap-3">
+            <AudienceBar label="Organic" value={61} tone="win" />
+            <AudienceBar label="Paid" value={43} tone="lose" />
+            <AudienceBar label="Mobile" value={55} tone="win" />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          {COCKPIT_STEPS.map((step, index) => (
+            <CockpitStep key={step.label} step={step} index={index} />
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-lg border border-accent/20 bg-accent/10 p-3 text-sm leading-6 text-ink">
+          Beagle does not just ask which variant won. It asks which audience won,
+          where the loser still protects revenue, and what should be tested next.
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function AudienceBar({ label, value, tone }) {
+  const isWin = tone === "win";
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-xs">
+        <span className="font-semibold text-ink">{label}</span>
+        <span className={`font-semibold tabular-nums ${isWin ? "text-win" : "text-lose"}`}>
+          {value}%
+        </span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-surface-2">
+        <div
+          className={`h-full rounded-full ${isWin ? "bg-win" : "bg-lose"}`}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CockpitStep({ step, index }) {
+  const done = step.status === "done";
+  const review = step.status === "review";
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-edge bg-surface-2 px-3 py-2">
+      <span
+        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
+          done ? "bg-win/10 text-win" : review ? "bg-accent/10 text-accent" : "bg-surface text-muted"
+        }`}
+      >
+        {done ? <CheckCircle2 size={15} /> : review ? <ShieldCheck size={15} /> : <ArrowRight size={15} />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-ink">{step.label}</span>
+          <span className="text-[11px] font-semibold uppercase text-muted">0{index + 1}</span>
+        </div>
+        <div className="truncate text-xs text-muted">{step.detail}</div>
+      </div>
     </div>
   );
 }
@@ -321,8 +471,8 @@ function ProblemFunnel() {
         ))}
       </div>
       <p className="mt-5 rounded-lg border border-edge bg-surface-2 p-3 text-xs leading-5 text-muted">
-        The point is not the example numbers. It is the operating problem:
-        without a loop, nobody knows which hero change reduced the leak.
+        The leak is not just lower CTR. It is the missing operating system:
+        without a loop, nobody knows which hero change reduced friction for which audience.
       </p>
     </div>
   );
@@ -495,7 +645,7 @@ function SegmentMatrix() {
       </div>
       <div className="mt-4 rounded-lg border border-lose/25 bg-lose/10 p-3 text-sm leading-6 text-ink">
         The aggregate says "ship the variant." Heterogeneity says paid traffic
-        needs the champion. That difference is the insight Beagle should surface.
+        needs the champion. That difference is not noise; it is the next targeting decision.
       </div>
     </div>
   );
