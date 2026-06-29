@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, GitBranch, TrendingUp } from "lucide-react";
 import { HERO_EVOLUTION } from "../lib/demoSeed.js";
 import MenuPreview from "./MenuPreview.jsx";
@@ -45,7 +46,7 @@ export default function HeroEvolutionVisual() {
           </div>
         </div>
         {delta ? (
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-win/25 bg-win/10 px-2.5 py-1 text-[11px] font-semibold text-win">
+          <div className="hero-shimmer inline-flex items-center gap-1.5 rounded-full border border-win/25 bg-win/10 px-2.5 py-1 text-[11px] font-semibold text-win">
             <TrendingUp size={13} />
             {delta} CTR lift
           </div>
@@ -72,6 +73,7 @@ export default function HeroEvolutionVisual() {
           <div className="text-xs font-semibold text-ink">
             8 rounds, decided by Real GA4
           </div>
+          <LiveTicker />
         </div>
         <LineageSparkline points={LINEAGE} />
       </div>
@@ -121,7 +123,46 @@ function PreviewPanel({ side, label, highlight = false }) {
   );
 }
 
+// Live CTR ticker — gently ticks the headline CTR up toward the winning value so
+// the card feels like it is improving 24/7. rAF-driven, capped, cleaned up on
+// unmount; reduced motion shows the final value statically.
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function LiveTicker() {
+  const TARGET = 69; // matches the winning challenger CTR (HERO_EVOLUTION.after)
+  const [val, setVal] = useState(() => (reducedMotion() ? TARGET : 64));
+
+  useEffect(() => {
+    if (reducedMotion()) return;
+    let raf;
+    let start;
+    const FROM = 64;
+    const DUR = 2600;
+    const ease = (t) => 1 - Math.pow(1 - t, 3);
+    const tick = (now) => {
+      if (start === undefined) start = now;
+      const t = Math.min(1, (now - start) / DUR);
+      setVal(Math.round((FROM + (TARGET - FROM) * ease(t)) * 10) / 10);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
+      <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-win" aria-hidden />
+      live CTR{" "}
+      <span className="hero-tick font-semibold text-win">{val.toFixed(1)}%</span>
+    </div>
+  );
+}
+
 // Small inline trend line in teal — generations climbing. Pure SVG, no deps.
+// The line draws on via stroke-dashoffset (CSS), the area/dot fade in after.
 function LineageSparkline({ points }) {
   const w = 120;
   const h = 34;
@@ -139,6 +180,17 @@ function LineageSparkline({ points }) {
   const area = `${pad},${h - pad} ${line} ${(w - pad).toFixed(1)},${h - pad}`;
   const last = coords[coords.length - 1];
 
+  // Measure the polyline's true length for an exact dash animation.
+  const lineRef = useRef(null);
+  const [len, setLen] = useState(260);
+  useEffect(() => {
+    const el = lineRef.current;
+    if (el && typeof el.getTotalLength === "function") {
+      const total = el.getTotalLength();
+      if (total > 0) setLen(Math.ceil(total));
+    }
+  }, []);
+
   return (
     <svg
       width={w}
@@ -147,6 +199,7 @@ function LineageSparkline({ points }) {
       className="shrink-0"
       role="img"
       aria-label="Hero conversion climbing across 8 generations"
+      style={{ "--spark-len": len }}
     >
       <defs>
         <linearGradient id="lineage-fill" x1="0" y1="0" x2="0" y2="1">
@@ -154,8 +207,10 @@ function LineageSparkline({ points }) {
           <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={area} fill="url(#lineage-fill)" />
+      <polygon className="spark-area" points={area} fill="url(#lineage-fill)" />
       <polyline
+        ref={lineRef}
+        className="spark-line"
         points={line}
         fill="none"
         stroke="var(--color-accent)"
@@ -163,8 +218,15 @@ function LineageSparkline({ points }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={last[0]} cy={last[1]} r="2.6" fill="var(--color-accent)" />
-      <circle cx={last[0]} cy={last[1]} r="4.6" fill="var(--color-accent)" fillOpacity="0.18" />
+      <circle className="spark-dot" cx={last[0]} cy={last[1]} r="2.6" fill="var(--color-accent)" />
+      <circle
+        className="spark-dot"
+        cx={last[0]}
+        cy={last[1]}
+        r="4.6"
+        fill="var(--color-accent)"
+        fillOpacity="0.18"
+      />
     </svg>
   );
 }
