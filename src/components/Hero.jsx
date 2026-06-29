@@ -22,7 +22,7 @@ const LOOP = ["Connect", "Propose", "Approve", "Run", "Learn"];
 const SIGNALS = [
   { label: "Hero baseline", value: "38%", detail: "seeded CTR before the loop" },
   { label: "Winning hero", value: "69%", detail: "after eight decisions" },
-  { label: "Current gate", value: "G9", detail: "awaiting approval" },
+  { label: "Hidden split", value: "3x", detail: "segment winners exposed" },
 ];
 
 const PROBLEM_POINTS = [
@@ -72,9 +72,9 @@ const FLOW = [
 ];
 
 const SEGMENTS = [
-  { label: "Organic", champion: 52, challenger: 61, winner: "challenger" },
-  { label: "Paid", champion: 49, challenger: 43, winner: "champion" },
-  { label: "Mobile", champion: 41, challenger: 55, winner: "challenger" },
+  { label: "Organic search", champion: 52, challenger: 61, delta: "+9", winner: "challenger" },
+  { label: "Paid traffic", champion: 49, challenger: 43, delta: "-6", winner: "champion" },
+  { label: "Mobile visitors", champion: 41, challenger: 55, delta: "+14", winner: "challenger" },
 ];
 
 export default function Hero({ onStart, onMethodology, onConfigure }) {
@@ -84,7 +84,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
       className="hero-stage flex w-full flex-col overflow-hidden"
     >
       <div className="hero-scroll-stack">
-        <section className="hero-panel hero-panel-first grid items-center gap-10 py-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:py-12">
+        <section className="hero-panel hero-panel-first grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:py-14">
           <div className="relative z-10 min-w-0">
             <div className="animate-pop hero-stagger-1">
               <span className="hero-eyebrow inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold text-ink shadow-sm">
@@ -108,7 +108,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             <p className="animate-pop hero-stagger-2 mt-5 max-w-2xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
               Beagle connects your page and analytics, lets Claude propose a
               guardrailed hero test, waits for approval, runs sticky A/B traffic,
-              and explains the result by KPI and audience segment.
+              and shows when the average winner is hiding a segment-specific loser.
             </p>
 
             <div className="animate-pop hero-stagger-3 mt-7 flex flex-wrap items-center gap-2.5">
@@ -192,10 +192,11 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
         <ScrollSection
           kicker="Data depth"
-          title="It does not stop at the average winner."
-          text="The MVP is built to surface heterogeneity: where the aggregate says one thing, but traffic source or device tells a more useful story for the next hero."
+          title="Heterogeneity is the point: one winner is not always one winner."
+          text="Beagle flags when aggregate lift hides opposing segment behavior. That is where the next test becomes useful: keep the winning hero for one audience, protect another audience from a variant that hurts them, and turn the finding into the next approved experiment."
+          contrast
         >
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
             <SegmentMatrix />
             <ReportPanel />
           </div>
@@ -217,9 +218,13 @@ function SignalCard({ signal }) {
   );
 }
 
-function ScrollSection({ kicker, title, text, children }) {
+function ScrollSection({ kicker, title, text, children, contrast = false }) {
   return (
-    <section className="hero-scroll-section scroll-pop py-8 sm:py-12">
+    <section
+      className={`hero-scroll-section scroll-pop py-10 sm:py-14 ${
+        contrast ? "hero-scroll-section-contrast" : ""
+      }`}
+    >
       <div className="mb-6 max-w-3xl">
         <div className="hero-kicker mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-accent">
           <Target size={13} />
@@ -385,41 +390,69 @@ function GenerationChart() {
 }
 
 function SegmentMatrix() {
+  const aggregate = { champion: 47, challenger: 53, delta: "+6" };
+
   return (
     <div className="hero-data-card rounded-lg border border-edge bg-surface p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted">Segment analysis</div>
-          <h3 className="mt-1 text-lg font-semibold text-ink">One average, different winners</h3>
+          <h3 className="mt-1 text-lg font-semibold text-ink">Aggregate lift, hidden loss</h3>
         </div>
         <Users className="text-accent" size={22} />
       </div>
+      <div className="mt-5 rounded-lg border border-win/25 bg-win/10 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold text-ink">Overall result</span>
+          <span className="rounded-md bg-win px-2 py-1 text-[11px] font-semibold text-white">
+            Variant wins {aggregate.delta} pts
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <MiniMetric label="Champion CTR" value={`${aggregate.champion}%`} />
+          <MiniMetric label="Variant CTR" value={`${aggregate.challenger}%`} accent />
+        </div>
+      </div>
       <div className="mt-5 overflow-hidden rounded-lg border border-edge">
-        <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.9fr] bg-surface-2 px-3 py-2 text-[11px] font-semibold text-muted">
+        <div className="grid grid-cols-[1fr_0.65fr_0.65fr_0.55fr_0.9fr] bg-surface-2 px-3 py-2 text-[11px] font-semibold text-muted">
           <span>Segment</span>
           <span>Champion</span>
           <span>Variant</span>
+          <span>Delta</span>
           <span>Serve</span>
         </div>
         {SEGMENTS.map((row) => (
           <div
             key={row.label}
-            className="grid grid-cols-[1fr_0.8fr_0.8fr_0.9fr] items-center border-t border-edge px-3 py-3 text-xs"
+            className={`grid grid-cols-[1fr_0.65fr_0.65fr_0.55fr_0.9fr] items-center border-t border-edge px-3 py-3 text-xs ${
+              row.winner === "champion" ? "bg-lose/5" : ""
+            }`}
           >
             <span className="font-semibold text-ink">{row.label}</span>
             <span className="tabular-nums text-muted">{row.champion}%</span>
             <span className="tabular-nums text-muted">{row.challenger}%</span>
             <span
+              className={`font-semibold tabular-nums ${
+                row.delta.startsWith("-") ? "text-lose" : "text-win"
+              }`}
+            >
+              {row.delta}
+            </span>
+            <span
               className={`w-fit rounded-md px-2 py-1 text-[11px] font-semibold ${
                 row.winner === "challenger"
                   ? "bg-win/10 text-win"
-                  : "bg-accent/10 text-accent"
+                  : "bg-lose/10 text-lose"
               }`}
             >
               {row.winner}
             </span>
           </div>
         ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-lose/25 bg-lose/10 p-3 text-sm leading-6 text-ink">
+        The aggregate says "ship the variant." Heterogeneity says paid traffic
+        needs the champion. That difference is the insight Beagle should surface.
       </div>
     </div>
   );
@@ -437,11 +470,12 @@ function ReportPanel() {
       </div>
       <div className="mt-5 grid gap-3">
         <ReportLine label="Hypothesis" value="Punchier headline improves CTA intent" />
-        <ReportLine label="Decision" value="Confirmed for CTR, watch paid traffic" />
-        <ReportLine label="Next test" value="Target hero by traffic source" />
+        <ReportLine label="Aggregate" value="Variant wins overall CTR by 6 points" />
+        <ReportLine label="Heterogeneity" value="Paid traffic reverses: champion wins by 6 points" />
+        <ReportLine label="Next test" value="Serve and test by traffic source" />
       </div>
       <div className="mt-5 rounded-lg border border-win/25 bg-win/10 p-3 text-sm font-semibold text-win">
-        Report can include metric movement, confirmed or rejected hypothesis, and segment findings.
+        Report output turns the split result into a clear recommendation, not just a chart.
       </div>
     </div>
   );
