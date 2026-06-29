@@ -25,8 +25,10 @@ export default function HeroEvolutionVisual() {
 
   return (
     <div className="hero-product-frame overflow-hidden">
-      {/* Frame chrome — product title + live signal + lift badge */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge/60 bg-white/40 px-5 py-3.5">
+      {/* Frame chrome — product title + live signal + lift badge. Borrowed from
+          the references' app-window header: brand glyph, a tight title block,
+          and a single high-value metric badge anchored to the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge/60 bg-white/50 px-4 py-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-white shadow-[0_6px_14px_-6px_rgba(36,87,72,0.7)]">
             <GitBranch size={16} />
@@ -43,26 +45,28 @@ export default function HeroEvolutionVisual() {
           </div>
         </div>
         {delta ? (
-          <div className="inline-flex items-center gap-2 rounded-full border border-win/25 bg-win/10 px-3 py-1.5 text-xs font-semibold text-win">
-            <TrendingUp size={14} />
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-win/25 bg-win/10 px-2.5 py-1 text-[11px] font-semibold text-win">
+            <TrendingUp size={13} />
             {delta} CTR lift
           </div>
         ) : null}
       </div>
 
-      {/* Stacked champion → challenger so the panel reads tall in the column */}
-      <div className="grid gap-3 p-4 sm:p-5">
+      {/* Stacked champion → challenger. Tighter gaps + the compact preview height
+          keep the panel from reading hollow (the references favour a single,
+          well-composed mockup over big empty boxes). */}
+      <div className="grid gap-2.5 p-3.5 sm:p-4">
         <PreviewPanel side={before} label="Current champion" />
         <div className="flex items-center justify-center" aria-hidden>
-          <span className="glass-inset grid h-8 w-8 place-items-center rounded-full text-muted shadow-sm">
-            <ArrowDown size={16} />
+          <span className="glass-inset grid h-7 w-7 place-items-center rounded-full text-muted shadow-sm">
+            <ArrowDown size={15} />
           </span>
         </div>
         <PreviewPanel side={after} label="Winning challenger" highlight />
       </div>
 
-      {/* Mini lineage sparkline + the decision facts as a designed footer */}
-      <div className="flex items-center justify-between gap-4 border-t border-edge/60 bg-white/30 px-5 py-3.5">
+      {/* Mini lineage sparkline + the decision facts as a designed footer. */}
+      <div className="flex items-center justify-between gap-4 border-t border-edge/60 bg-white/40 px-4 py-3 sm:px-5">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-muted">Lineage · generations</div>
           <div className="text-xs font-semibold text-ink">
@@ -78,24 +82,41 @@ export default function HeroEvolutionVisual() {
 function PreviewPanel({ side, label, highlight = false }) {
   return (
     <div className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div>
-          <div className="text-[11px] font-semibold text-muted">{label}</div>
-          <div className="text-xs font-semibold text-ink">
-            Variant {side.generation}
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            className={`grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-bold tabular-nums ${
+              highlight
+                ? "bg-win/15 text-win"
+                : "bg-edge/50 text-muted"
+            }`}
+            aria-hidden
+          >
+            {side.generation}
+          </span>
+          <div>
+            <div className="text-[11px] font-semibold leading-tight text-ink">{label}</div>
+            <div className="text-[10px] leading-tight text-muted">
+              Variant {side.generation}
+            </div>
           </div>
         </div>
         <span
           className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold tabular-nums ${
             highlight
               ? "border-win/25 bg-win/10 text-win"
-              : "border-edge/70 bg-white/50 text-muted"
+              : "border-edge/70 bg-white/60 text-muted"
           }`}
         >
           {side.metricLabel}
         </span>
       </div>
-      <MenuPreview config={side.config} variant="hero" />
+      {/* Wrap MenuPreview in our own framed tile so the preview reads as an
+          elevated product shot. MenuPreview itself is read-only (owned by
+          ui-ux); we only restyle the surround. */}
+      <div className={`hero-mock overflow-hidden ${highlight ? "hero-mock-win" : ""}`}>
+        <MenuPreview config={side.config} variant="compact" />
+      </div>
     </div>
   );
 }

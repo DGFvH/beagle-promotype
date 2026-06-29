@@ -99,11 +99,14 @@ a:focus-visible,
   border-radius: 999px;
 }
 
-/* ── Hero motion ─────────────────────────────────────────────────────────── */
+/* ── Hero motion ───────────────────────────────────────────────────────────
+   Entry fade-up borrowed from the references' hero reveals (sfeerimpressie /
+   woninganalyse both use opacity+translateY with an easeOut-style curve and a
+   short stagger). We do it in pure CSS — no motion library. */
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -111,20 +114,25 @@ a:focus-visible,
   }
 }
 .animate-pop {
-  animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Tighter, evenly-paced stagger (≈90ms steps) so copy → CTAs → panel reveal in
+   a single confident sweep rather than a long drawn-out cascade. */
 .hero-stagger-1 {
   animation-delay: 40ms;
 }
 .hero-stagger-2 {
-  animation-delay: 140ms;
+  animation-delay: 120ms;
 }
 .hero-stagger-3 {
-  animation-delay: 240ms;
+  animation-delay: 210ms;
 }
 .hero-stagger-4 {
-  animation-delay: 340ms;
+  animation-delay: 300ms;
+}
+.hero-stagger-5 {
+  animation-delay: 380ms;
 }
 
 /* Floating accent chips around the product centerpiece — a slow vertical bob
@@ -158,6 +166,25 @@ a:focus-visible,
   position: relative;
   min-height: calc(100vh - 6.5rem);
   isolation: isolate;
+}
+
+/* Fluid headline scale — adopted from the references (sfeerimpressie
+   clamp(2.25rem,4.4vw,3.5rem)/1.06/-0.015em; woninganalyse clamp(36px,5.5vw,60px)
+   /1.05/-2px). One clamp() handles every breakpoint, so the headline wraps to a
+   confident 2–3 lines instead of stretching to four. Pairs with text-balance. */
+.hero-headline {
+  font-size: clamp(2.3rem, 5.2vw, 4.05rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+/* Eyebrow badge — the restrained pill all three references lead with:
+   small caps-ish label, hairline ring, soft accent tint, blurred surface. */
+.hero-eyebrow {
+  background: color-mix(in srgb, var(--color-accent-soft), white 30%);
+  border: 1px solid color-mix(in srgb, var(--color-accent), transparent 78%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 /* Base wash + a faint dotted grid across the whole stage. The grid gives the
@@ -269,7 +296,7 @@ a:focus-visible,
 }
 
 .hero-product-frame {
-  background: color-mix(in srgb, var(--color-surface), transparent 18%);
+  background: color-mix(in srgb, var(--color-surface), transparent 12%);
   -webkit-backdrop-filter: blur(18px) saturate(1.12);
   backdrop-filter: blur(18px) saturate(1.12);
   border: 1px solid color-mix(in srgb, var(--color-edge), white 45%);
@@ -279,6 +306,24 @@ a:focus-visible,
     0 1px 2px rgba(21, 32, 43, 0.05),
     0 12px 28px rgba(21, 32, 43, 0.07),
     0 36px 70px -20px rgba(23, 107, 107, 0.18);
+}
+
+/* Inner browser-style preview tile — borrowed from woninganalyse's .mockup-browser
+   (10px radius, hairline border, one clean depth shadow). Keeps each champion /
+   challenger panel reading as a real product shot, not a flat box. */
+.hero-mock {
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-edge), white 10%);
+  background: var(--color-surface);
+  box-shadow:
+    0 1px 1px rgba(21, 32, 43, 0.04),
+    0 10px 26px -12px rgba(21, 32, 43, 0.18);
+}
+.hero-mock-win {
+  border-color: color-mix(in srgb, var(--color-win), transparent 55%);
+  box-shadow:
+    0 1px 1px rgba(21, 32, 43, 0.04),
+    0 12px 30px -12px color-mix(in srgb, var(--color-win), transparent 62%);
 }
 
 /* ── Hero showcase (right-column centerpiece) ──────────────────────────────
@@ -322,15 +367,18 @@ a:focus-visible,
   z-index: -1;
 }
 
-/* Floating accent chips that sit on top of / around the showcase. */
+/* Floating accent chips that sit on top of / around the showcase. The deep,
+   tight-spread shadow (bloom-coach `shadow-[0_25px_70px_-15px_...]`) is what
+   lifts them off the panel; a hair of rotation makes them feel placed, not
+   pasted. Decorative only. */
 .hero-float-chip {
-  background: color-mix(in srgb, var(--color-surface), transparent 8%);
-  -webkit-backdrop-filter: blur(10px) saturate(1.1);
-  backdrop-filter: blur(10px) saturate(1.1);
+  background: color-mix(in srgb, var(--color-surface), transparent 4%);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid color-mix(in srgb, var(--color-edge), white 30%);
   box-shadow:
     0 1px 2px rgba(21, 32, 43, 0.06),
-    0 14px 30px -12px rgba(21, 32, 43, 0.25);
+    0 20px 44px -16px rgba(21, 32, 43, 0.32);
 }
 
 @media (prefers-reduced-motion: reduce) {
