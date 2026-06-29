@@ -1,10 +1,15 @@
-import { ArrowDown, GitBranch, TrendingUp } from "lucide-react";
+import { ArrowDown, CheckCircle2, GitBranch, TrendingUp } from "lucide-react";
 import { HERO_EVOLUTION } from "../lib/demoSeed.js";
 import MenuPreview from "./MenuPreview.jsx";
 
 // Seeded generation CTR climb for the mini lineage sparkline (38% → 69%).
 // Decorative trend only; the real numbers live in HERO_EVOLUTION / the engine.
 const LINEAGE = [38, 41, 47, 49, 55, 58, 64, 69];
+const DECISION_FACTS = [
+  { label: "Decided", value: "8 rounds" },
+  { label: "Live round", value: "G9" },
+  { label: "Gate", value: "Approve" },
+];
 
 export default function HeroEvolutionVisual() {
   // Fail safely: never throw or fabricate if the seed inputs are absent.
@@ -34,7 +39,7 @@ export default function HeroEvolutionVisual() {
             <GitBranch size={16} />
           </span>
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-ink">Your homepage hero</div>
+            <div className="text-xs font-semibold text-ink">Experiment cockpit</div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted">
               <span
                 className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-win"
@@ -66,12 +71,11 @@ export default function HeroEvolutionVisual() {
       </div>
 
       {/* Mini lineage sparkline + the decision facts as a designed footer. */}
-      <div className="flex items-center justify-between gap-4 border-t border-edge/60 bg-white/40 px-4 py-3 sm:px-5">
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium text-muted">Lineage · generations</div>
-          <div className="text-xs font-semibold text-ink">
-            8 rounds, decided by Real GA4
-          </div>
+      <div className="grid gap-3 border-t border-edge/60 bg-white/40 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {DECISION_FACTS.map((fact, index) => (
+            <DecisionFact key={fact.label} fact={fact} active={index === 2} />
+          ))}
         </div>
         <LineageSparkline points={LINEAGE} />
       </div>
@@ -117,6 +121,18 @@ function PreviewPanel({ side, label, highlight = false }) {
       <div className={`hero-mock overflow-hidden ${highlight ? "hero-mock-win" : ""}`}>
         <MenuPreview config={side.config} variant="compact" />
       </div>
+    </div>
+  );
+}
+
+function DecisionFact({ fact, active = false }) {
+  return (
+    <div className="rounded-lg border border-edge/70 bg-white/60 px-3 py-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted">
+        {active && <CheckCircle2 size={11} className="text-win" aria-hidden />}
+        {fact.label}
+      </div>
+      <div className="mt-0.5 text-xs font-semibold text-ink">{fact.value}</div>
     </div>
   );
 }

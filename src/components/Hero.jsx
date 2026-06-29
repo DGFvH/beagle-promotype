@@ -18,12 +18,15 @@ const PILLARS = [
   { icon: ShieldCheck, label: "Respects your design system & guardrails" },
   { icon: BarChart3, label: "Real GA4 results, read back live" },
   { icon: Users, label: "Per-segment breakdown" },
-  { icon: CheckCircle2, label: "Human-approved — nothing ships unseen" },
+  { icon: CheckCircle2, label: "Human-approved - nothing ships unseen" },
 ];
 
 export default function Hero({ onStart, onMethodology, onConfigure }) {
   return (
-    <section className="hero-stage flex w-full flex-col justify-center overflow-hidden py-8 sm:py-12">
+    <section
+      aria-labelledby="hero-heading"
+      className="hero-stage flex w-full flex-col justify-center overflow-hidden py-8 sm:py-12"
+    >
       <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         {/* ── Left column: copy + CTAs + trust row ─────────────────────────── */}
         <div className="relative z-10 min-w-0">
@@ -41,7 +44,10 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             </span>
           </div>
 
-          <h1 className="hero-headline animate-pop hero-stagger-1 mt-6 text-balance font-serif font-medium text-ink">
+          <h1
+            id="hero-heading"
+            className="hero-headline animate-pop hero-stagger-1 mt-6 text-balance font-sans font-semibold text-ink"
+          >
             Let Claude turn your hero section into a{" "}
             <span className="hero-underline relative whitespace-nowrap text-accent">
               self-improving
@@ -51,7 +57,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
           <p className="animate-pop hero-stagger-2 mt-5 max-w-xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
             Connect your real page and analytics. Claude proposes a hero variant and
-            a hypothesis that respect your design system and guardrails — you approve
+            a hypothesis that respect your design system and guardrails. You approve
             it, Beagle ships it with cookie-based assignment, then reads the{" "}
             <span className="font-medium text-ink">real results</span> back and breaks
             them down per segment.
@@ -105,7 +111,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
                 <span className="font-medium text-ink">{step}</span>
               </span>
             ))}
-            <span className="text-muted">— nothing goes live without your approval.</span>
+            <span className="text-muted">Nothing goes live without your approval.</span>
           </div>
         </div>
 
