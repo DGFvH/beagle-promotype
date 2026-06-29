@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -78,8 +79,40 @@ const SEGMENTS = [
 ];
 
 export default function Hero({ onStart, onMethodology, onConfigure }) {
+  const stageRef = useRef(null);
+
+  useEffect(() => {
+    const root = stageRef.current;
+    if (!root) return undefined;
+
+    const items = Array.from(root.querySelectorAll("[data-reveal]"));
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (prefersReducedMotion) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -10% 0px" }
+    );
+
+    items.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section
+      ref={stageRef}
       aria-labelledby="hero-heading"
       className="hero-stage flex w-full flex-col overflow-hidden"
     >
@@ -221,7 +254,8 @@ function SignalCard({ signal }) {
 function ScrollSection({ kicker, title, text, children, contrast = false }) {
   return (
     <section
-      className={`hero-scroll-section scroll-pop py-10 sm:py-14 ${
+      data-reveal
+      className={`hero-scroll-section reveal-on-scroll py-10 sm:py-14 ${
         contrast ? "hero-scroll-section-contrast" : ""
       }`}
     >
@@ -243,7 +277,10 @@ function ScrollSection({ kicker, title, text, children, contrast = false }) {
 function ProblemCard({ point }) {
   const Icon = point.icon;
   return (
-    <div className="hero-info-card flex gap-3 rounded-lg border border-edge bg-surface p-4">
+    <div
+      data-reveal
+      className="hero-info-card reveal-card flex gap-3 rounded-lg border border-edge bg-surface p-4"
+    >
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
         <Icon size={18} />
       </span>
@@ -264,7 +301,10 @@ function ProblemFunnel() {
   ];
 
   return (
-    <div className="hero-data-card rounded-lg border border-edge bg-surface p-5">
+    <div
+      data-reveal
+      className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted">Example funnel</div>
@@ -302,7 +342,12 @@ function FlowRail() {
       {FLOW.map((step, index) => {
         const Icon = step.icon;
         return (
-          <div key={step.title} className="hero-info-card rounded-lg border border-edge bg-surface p-4">
+          <div
+            key={step.title}
+            data-reveal
+            className="hero-info-card reveal-card rounded-lg border border-edge bg-surface p-4"
+            style={{ "--reveal-delay": `${index * 70}ms` }}
+          >
             <div className="flex gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
                 <Icon size={18} />
@@ -338,7 +383,10 @@ function GenerationChart() {
   const line = coords.map(([x, y]) => `${x},${y}`).join(" ");
 
   return (
-    <div className="hero-data-card rounded-lg border border-edge bg-surface p-5">
+    <div
+      data-reveal
+      className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted">Seeded lineage</div>
@@ -393,7 +441,10 @@ function SegmentMatrix() {
   const aggregate = { champion: 47, challenger: 53, delta: "+6" };
 
   return (
-    <div className="hero-data-card rounded-lg border border-edge bg-surface p-5">
+    <div
+      data-reveal
+      className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted">Segment analysis</div>
@@ -460,7 +511,10 @@ function SegmentMatrix() {
 
 function ReportPanel() {
   return (
-    <div className="hero-data-card rounded-lg border border-edge bg-surface p-5">
+    <div
+      data-reveal
+      className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase text-muted">Decision output</div>

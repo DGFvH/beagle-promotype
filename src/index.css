@@ -155,7 +155,7 @@ a:focus-visible,
 /* Hero stage: layered canvas and subtle grid behind the content. */
 .hero-stage {
   position: relative;
-  min-height: calc(100vh - 6.5rem);
+  min-height: calc(100svh - 3.5rem);
   isolation: isolate;
 }
 
@@ -183,7 +183,7 @@ a:focus-visible,
 .hero-stage::after {
   content: "";
   position: absolute;
-  inset: -2rem -2rem 0;
+  inset: 0;
   pointer-events: none;
   z-index: -2;
   background-color: var(--color-canvas);
@@ -389,36 +389,43 @@ a:focus-visible,
 
 .hero-scroll-stack {
   display: grid;
-  gap: 2.5rem;
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  gap: 2rem;
+  padding: 0 clamp(1rem, 4vw, 2rem) 4rem;
 }
 
 .hero-panel {
-  min-height: calc(100svh - 5.5rem);
+  min-height: calc(100svh - 3.5rem);
 }
 
 .hero-panel-first {
-  min-height: calc(100svh - 4.5rem);
+  min-height: calc(100svh - 3.5rem);
   scroll-margin-top: 5rem;
 }
 
 .hero-scroll-section {
+  display: flex;
+  min-height: calc(100svh - 4.5rem);
+  flex-direction: column;
+  justify-content: center;
   scroll-margin-top: 5rem;
-  border-top: 1px solid color-mix(in srgb, var(--color-edge), transparent 25%);
+  border: 1px solid color-mix(in srgb, var(--color-edge), transparent 14%);
   border-radius: 1rem;
-  background: color-mix(in srgb, var(--color-surface), transparent 18%);
-  padding-left: clamp(1rem, 2vw, 1.5rem);
-  padding-right: clamp(1rem, 2vw, 1.5rem);
+  background: color-mix(in srgb, var(--color-surface), transparent 6%);
+  padding-left: clamp(1rem, 2.6vw, 2rem);
+  padding-right: clamp(1rem, 2.6vw, 2rem);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.68),
-    0 18px 44px -34px rgba(21, 32, 43, 0.34);
+    0 24px 58px -34px rgba(21, 32, 43, 0.42);
 }
 
 .hero-scroll-section-contrast {
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-ink), white 4%),
-      color-mix(in srgb, var(--color-accent-strong), black 28%)
+      var(--color-ink),
+      color-mix(in srgb, var(--color-accent-strong), black 34%)
     );
   border-color: color-mix(in srgb, var(--color-accent), transparent 45%);
   color: white;
@@ -442,8 +449,8 @@ a:focus-visible,
 }
 
 .hero-scroll-section-contrast .hero-data-card {
-  background: color-mix(in srgb, var(--color-surface), transparent 3%);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface);
+  border-color: rgba(255, 255, 255, 0.26);
 }
 
 .hero-kicker {
@@ -468,43 +475,32 @@ a:focus-visible,
     );
 }
 
-@keyframes sectionPop {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.reveal-on-scroll,
+.reveal-card {
+  opacity: 0;
+  transform: translateY(34px) scale(0.982);
+  transition:
+    opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
 }
 
-@supports (animation-timeline: view()) {
-  .scroll-pop {
-    opacity: 0;
-    transform: translateY(24px) scale(0.985);
-    animation: sectionPop linear both;
-    animation-timeline: view();
-    animation-range: entry 8% cover 32%;
-  }
+.reveal-on-scroll.is-visible,
+.reveal-card.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
 
-  .scroll-pop .hero-info-card,
-  .scroll-pop .hero-data-card {
-    opacity: 0;
-    transform: translateY(26px) scale(0.985);
-    animation: sectionPop linear both;
-    animation-timeline: view();
-    animation-range: entry 6% cover 26%;
-  }
+.reveal-card {
+  transform: translateY(26px) scale(0.985);
+}
 
-  .scroll-pop .hero-info-card:nth-child(2),
-  .scroll-pop .hero-data-card:nth-child(2) {
-    animation-range: entry 10% cover 30%;
-  }
-
-  .scroll-pop .hero-info-card:nth-child(3),
-  .scroll-pop .hero-data-card:nth-child(3) {
-    animation-range: entry 14% cover 34%;
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll,
+  .reveal-card {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 
@@ -518,6 +514,12 @@ a:focus-visible,
   }
   .hero-panel,
   .hero-panel-first {
+    min-height: auto;
+  }
+  .hero-scroll-stack {
+    padding-bottom: 2rem;
+  }
+  .hero-scroll-section {
     min-height: auto;
   }
   .hero-stage::before {

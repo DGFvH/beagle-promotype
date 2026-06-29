@@ -191,10 +191,10 @@ export default function App() {
       />
 
       <main
-        className={`mx-auto w-full px-4 sm:px-6 ${
+        className={`mx-auto w-full ${
           showLanding
-            ? "flex min-h-[calc(100vh-3.5rem)] max-w-6xl items-stretch pb-10 pt-6"
-            : "max-w-6xl pb-8 pt-4"
+            ? "flex min-h-[calc(100svh-3.5rem)] max-w-none items-stretch px-0 pb-0 pt-0"
+            : "max-w-6xl px-4 pb-8 pt-4 sm:px-6"
         }`}
       >
         {!showLanding && walkthroughActive && (
