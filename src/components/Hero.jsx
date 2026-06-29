@@ -16,7 +16,6 @@ import {
   Users,
 } from "lucide-react";
 import { LogoMark } from "./Logo.jsx";
-import HeroEvolutionVisual from "./HeroEvolutionVisual.jsx";
 
 const LOOP = ["Connect", "Propose", "Approve", "Run", "Learn"];
 
@@ -117,7 +116,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
       className="hero-stage flex w-full flex-col overflow-hidden"
     >
       <div className="hero-scroll-stack">
-        <section className="hero-panel hero-panel-first grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(28rem,1.1fr)] lg:gap-14 lg:py-14">
+        <section className="hero-panel hero-panel-first grid items-center py-10 lg:py-14">
           <div className="relative z-10 min-w-0">
             <div className="animate-pop hero-stagger-1">
               <span className="hero-eyebrow inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold text-ink shadow-sm">
@@ -138,7 +137,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               Stop guessing which hero converts.
             </h1>
 
-            <p className="animate-pop hero-stagger-2 mt-5 max-w-2xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
+            <p className="animate-pop hero-stagger-2 mt-5 max-w-3xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
               Beagle connects your page and analytics, lets Claude propose a
               guardrailed hero test, waits for approval, runs sticky A/B traffic,
               and shows when the average winner is hiding a segment-specific loser.
@@ -171,7 +170,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               </button>
             </div>
 
-            <div className="animate-pop hero-stagger-4 mt-8 grid max-w-2xl gap-2 sm:grid-cols-3">
+            <div className="animate-pop hero-stagger-4 mt-8 grid max-w-4xl gap-2 sm:grid-cols-3">
               {SIGNALS.map((signal) => (
                 <SignalCard key={signal.label} signal={signal} />
               ))}
@@ -188,13 +187,6 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             </div>
           </div>
 
-          <div className="relative z-10 min-w-0">
-            <div className="hero-showcase animate-pop hero-stagger-3 relative mx-auto max-w-2xl px-2 lg:mx-0">
-              <div className="hero-showcase-panel">
-                <HeroEvolutionVisual />
-              </div>
-            </div>
-          </div>
         </section>
 
         <ScrollSection
