@@ -3,9 +3,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
-  BookOpen,
   CheckCircle2,
-  Database,
   FileText,
   Gauge,
   GitBranch,
@@ -13,28 +11,12 @@ import {
   Link2,
   MousePointerClick,
   PlayCircle,
-  Plug,
   ShieldCheck,
   Sparkles,
   Target,
   Users,
 } from "lucide-react";
 import { LogoMark } from "./Logo.jsx";
-
-const LOOP = ["Connect", "Analyze", "Mutate", "Approve", "Run", "Segment"];
-
-const SIGNALS = [
-  { label: "CTR delta in demo", value: "+31pts", detail: "38% baseline to 69% champion" },
-  { label: "Audience reversal", value: "-6pts", detail: "paid traffic keeps the old hero" },
-  { label: "Next hypotheses", value: "4", detail: "queued from segment evidence" },
-];
-
-const STACK_ITEMS = [
-  { icon: Plug, label: "Source", value: "GitHub, WordPress, Framer" },
-  { icon: Database, label: "Analytics", value: "GA4 or Looker evidence" },
-  { icon: ShieldCheck, label: "Control", value: "Approval before launch" },
-  { icon: Users, label: "Audience", value: "Segment-level serving" },
-];
 
 const PROBLEM_POINTS = [
   {
@@ -182,7 +164,7 @@ const TRAFFIC_EVENTS = [
   { source: "Paid", variant: "Champion", event: "Pricing click", lift: "+5" },
 ];
 
-export default function Hero({ onStart, onMethodology, onConfigure }) {
+export default function Hero({ onStart, onConfigure }) {
   const stageRef = useRef(null);
   const [activeAudience, setActiveAudience] = useState(AUDIENCE_DEMOS[0].key);
   const [liveTick, setLiveTick] = useState(0);
@@ -227,7 +209,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
     const timer = window.setInterval(() => {
       setLiveTick((tick) => (tick + 1) % 240);
-    }, 1600);
+    }, 1100);
 
     return () => window.clearInterval(timer);
   }, []);
@@ -261,10 +243,8 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             </h1>
 
             <p className="animate-pop hero-stagger-2 mx-auto mt-5 max-w-3xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
-              Beagle turns a landing-page hero into a controlled experiment loop:
-              detect the real page, generate a concrete before/after change, gate
-              it for approval, run sticky traffic, and show which audience should
-              see which winner.
+              Connect a page, approve the generated hero variant, and watch the
+              winner split by audience as live experiment data comes in.
             </p>
 
             <div className="animate-pop hero-stagger-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
@@ -284,36 +264,6 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
                 <PlayCircle size={17} />
                 Watch the loop
               </button>
-              <button
-                type="button"
-                onClick={onMethodology}
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-medium text-muted hover:-translate-y-0.5 hover:text-ink"
-              >
-                <BookOpen size={17} />
-                Methodology
-              </button>
-            </div>
-
-            <div className="animate-pop hero-stagger-4 mx-auto mt-8 grid max-w-5xl gap-2 text-left sm:grid-cols-2 xl:grid-cols-4">
-              {STACK_ITEMS.map((item) => (
-                <StackPill key={item.label} item={item} />
-              ))}
-            </div>
-
-            <div className="animate-pop hero-stagger-5 mx-auto mt-5 grid max-w-4xl gap-2 text-left sm:grid-cols-3">
-              {SIGNALS.map((signal) => (
-                <SignalCard key={signal.label} signal={signal} />
-              ))}
-            </div>
-
-            <div className="hero-loop animate-pop hero-stagger-5 mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted">
-              <span className="font-semibold uppercase text-muted">The loop</span>
-              {LOOP.map((step, i) => (
-                <span key={step} className="inline-flex items-center gap-2">
-                  {i > 0 && <span className="h-px w-4 bg-edge" aria-hidden />}
-                  <span className="font-medium text-ink">{step}</span>
-                </span>
-              ))}
             </div>
           </div>
 
@@ -380,31 +330,6 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
   );
 }
 
-function StackPill({ item }) {
-  const Icon = item.icon;
-  return (
-    <div className="hero-stack-pill rounded-lg border border-edge bg-surface/85 px-3 py-3 shadow-sm">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase text-muted">
-        <Icon size={14} className="text-accent" />
-        {item.label}
-      </div>
-      <div className="mt-1 text-sm font-semibold leading-snug text-ink">{item.value}</div>
-    </div>
-  );
-}
-
-function SignalCard({ signal }) {
-  return (
-    <div className="hero-signal-card rounded-lg border border-edge bg-surface/80 px-4 py-3 shadow-sm">
-      <div className="text-2xl font-semibold leading-none tabular-nums text-ink">
-        {signal.value}
-      </div>
-      <div className="mt-1 text-xs font-semibold text-ink">{signal.label}</div>
-      <div className="mt-1 text-[11px] leading-snug text-muted">{signal.detail}</div>
-    </div>
-  );
-}
-
 function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick }) {
   return (
     <aside
@@ -442,14 +367,7 @@ function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick })
 
         <HeroDataDeck activeDemo={activeDemo} liveTick={liveTick} />
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.58fr)]">
-          <HeroBeforeAfter activeDemo={activeDemo} compact />
-          <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
-        </div>
-
-        <div className="mt-4 rounded-lg border border-accent/20 bg-accent/10 p-3 text-sm leading-6 text-ink">
-          {activeDemo.recommendation}
-        </div>
+        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
       </div>
     </aside>
   );
@@ -468,6 +386,7 @@ function HeroDataDeck({ activeDemo, liveTick }) {
         points={activeDemo.points}
         badge={activeDemo.delta}
         negative={negative}
+        liveTick={liveTick}
         large
       />
       <VariantComparisonPanel activeDemo={activeDemo} />
@@ -918,6 +837,7 @@ function ExperimentBoard({ activeDemo, liveTick }) {
             points={activeDemo.points}
             badge={activeDemo.delta}
             negative={activeDemo.challengerCtr < activeDemo.championCtr}
+            liveTick={liveTick}
             large
           />
           <div className="grid gap-3">
@@ -988,23 +908,40 @@ function FlowRail() {
   );
 }
 
-function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false, large = false }) {
-  const width = 320;
+function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false, liveTick = 0, large = false }) {
+  const width = 340;
   const height = large ? 190 : 132;
-  const pad = 22;
+  const pad = 24;
+  const rightPad = 40;
   const min = 34;
   const max = 72;
-  const step = (width - pad * 2) / (points.length - 1);
-  const coords = points.map((value, index) => {
+  const sampleMax = 3200;
+  const sampleMin = 600;
+  const chartEnd = width - pad - rightPad;
+  const movedPoints = points.map((value, index) => {
+    const wave = Math.sin((liveTick + index * 1.7) * 0.72) * (negative ? 0.75 : 1.15);
+    const lastPointLift = index === points.length - 1 ? Math.sin(liveTick * 0.9) * 0.9 : 0;
+    return Math.max(min + 1, Math.min(max - 1, value + wave + lastPointLift));
+  });
+  const samples = points.map((value, index) => {
+    const base = 900 + index * 235 + value * 9;
+    const pulse = ((liveTick + index * 2) % 6) * 52;
+    return Math.min(sampleMax, base + pulse);
+  });
+  const step = (chartEnd - pad) / (points.length - 1);
+  const coords = movedPoints.map((value, index) => {
     const x = pad + index * step;
     const y = pad + (1 - (value - min) / (max - min)) * (height - pad * 2);
     return [x, y];
   });
+  const cursorIndex = liveTick % coords.length;
+  const [cursorX, cursorY] = coords[cursorIndex];
+  const cursorSample = samples[cursorIndex];
   const line = coords.map(([x, y]) => `${x},${y}`).join(" ");
-  const area = `${pad},${height - pad} ${line} ${width - pad},${height - pad}`;
+  const area = `${pad},${height - pad} ${line} ${chartEnd},${height - pad}`;
 
   return (
-    <div className="rounded-lg border border-edge bg-surface p-4">
+    <div className="hero-chart-card rounded-lg border border-edge bg-surface p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="text-xs font-semibold uppercase text-muted">{title}</div>
         <span
@@ -1025,11 +962,42 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
           const y = pad + (1 - (tick - min) / (max - min)) * (height - pad * 2);
           return (
             <g key={tick}>
-              <line x1={pad} x2={width - pad} y1={y} y2={y} stroke="var(--color-edge)" />
+              <line x1={pad} x2={chartEnd} y1={y} y2={y} stroke="var(--color-edge)" />
               <text x={0} y={y + 3} className="fill-muted text-[9px]">
                 {tick}
               </text>
             </g>
+          );
+        })}
+        {[1000, 2000, 3000].map((tick) => {
+          const y = pad + (1 - (tick - sampleMin) / (sampleMax - sampleMin)) * (height - pad * 2);
+          return (
+            <text key={tick} x={chartEnd + 8} y={y + 3} className="fill-muted text-[8px]">
+              {tick / 1000}k
+            </text>
+          );
+        })}
+        <text x={0} y={13} className="fill-muted text-[8px]">
+          CTR
+        </text>
+        <text x={chartEnd + 4} y={13} className="fill-muted text-[8px]">
+          samples
+        </text>
+        {samples.map((sample, index) => {
+          const barWidth = Math.max(5, step * 0.34);
+          const x = pad + index * step - barWidth / 2;
+          const barHeight = ((sample - sampleMin) / (sampleMax - sampleMin)) * (height - pad * 2);
+          const y = height - pad - barHeight;
+          return (
+            <rect
+              key={`${index}-${sample}`}
+              className="hero-sample-bar"
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barHeight}
+              rx="2"
+            />
           );
         })}
         <polygon points={area} className="hero-chart-area" />
@@ -1062,6 +1030,13 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
             fill={index === coords.length - 1 ? "var(--color-win)" : "var(--color-accent)"}
           />
         ))}
+        <g className="hero-chart-cursor" transform={`translate(${cursorX} 0)`}>
+          <line x1="0" x2="0" y1={pad} y2={height - pad} />
+          <circle cx="0" cy={cursorY} r="4.5" />
+          <text x="7" y={Math.max(pad + 10, cursorY - 8)}>
+            {Math.round(movedPoints[cursorIndex])}% / {Math.round(cursorSample / 100) / 10}k
+          </text>
+        </g>
       </svg>
     </div>
   );
