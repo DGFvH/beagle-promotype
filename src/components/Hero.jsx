@@ -239,8 +239,8 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
       className="hero-stage flex w-full flex-col overflow-hidden"
     >
       <div className="hero-scroll-stack">
-        <section className="hero-panel hero-panel-first grid items-center gap-8 py-8 lg:grid-cols-[minmax(0,0.86fr)_minmax(30rem,1fr)] lg:py-10">
-          <div className="relative z-10 min-w-0">
+        <section className="hero-panel hero-panel-first grid content-center gap-7 py-8 lg:py-10">
+          <div className="relative z-10 mx-auto min-w-0 max-w-5xl text-center">
             <div className="animate-pop hero-stagger-1">
               <span className="hero-eyebrow inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-semibold text-ink shadow-sm">
                 <LogoMark size={18} />
@@ -260,14 +260,14 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               Stop shipping one hero to every visitor.
             </h1>
 
-            <p className="animate-pop hero-stagger-2 mt-5 max-w-3xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
+            <p className="animate-pop hero-stagger-2 mx-auto mt-5 max-w-3xl text-pretty text-base leading-7 text-muted sm:text-[1.0625rem] sm:leading-8">
               Beagle turns a landing-page hero into a controlled experiment loop:
               detect the real page, generate a concrete before/after change, gate
               it for approval, run sticky traffic, and show which audience should
               see which winner.
             </p>
 
-            <div className="animate-pop hero-stagger-3 mt-7 flex flex-wrap items-center gap-2.5">
+            <div className="animate-pop hero-stagger-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={onConfigure}
@@ -294,19 +294,19 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
               </button>
             </div>
 
-            <div className="animate-pop hero-stagger-4 mt-8 grid max-w-5xl gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="animate-pop hero-stagger-4 mx-auto mt-8 grid max-w-5xl gap-2 text-left sm:grid-cols-2 xl:grid-cols-4">
               {STACK_ITEMS.map((item) => (
                 <StackPill key={item.label} item={item} />
               ))}
             </div>
 
-            <div className="animate-pop hero-stagger-5 mt-5 grid max-w-4xl gap-2 sm:grid-cols-3">
+            <div className="animate-pop hero-stagger-5 mx-auto mt-5 grid max-w-4xl gap-2 text-left sm:grid-cols-3">
               {SIGNALS.map((signal) => (
                 <SignalCard key={signal.label} signal={signal} />
               ))}
             </div>
 
-            <div className="hero-loop animate-pop hero-stagger-5 mt-7 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
+            <div className="hero-loop animate-pop hero-stagger-5 mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted">
               <span className="font-semibold uppercase text-muted">The loop</span>
               {LOOP.map((step, i) => (
                 <span key={step} className="inline-flex items-center gap-2">
@@ -406,9 +406,6 @@ function SignalCard({ signal }) {
 }
 
 function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick }) {
-  const sampledVisitors = 1284 + liveTick * 17;
-  const confidence = Math.min(96, activeDemo.confidence + (liveTick % 4));
-
   return (
     <aside
       className="hero-cockpit animate-pop hero-stagger-4 relative z-10"
@@ -443,44 +440,138 @@ function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick })
           onAudienceChange={onAudienceChange}
         />
 
-        <HeroBeforeAfter activeDemo={activeDemo} compact />
+        <HeroDataDeck activeDemo={activeDemo} liveTick={liveTick} />
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <MiniMetric label="Sampled visitors" value={sampledVisitors.toLocaleString("en-US")} />
-          <MiniMetric label="Variant CTR" value={`${activeDemo.challengerCtr}%`} accent={activeDemo.challengerCtr >= activeDemo.championCtr} negative={activeDemo.challengerCtr < activeDemo.championCtr} />
-          <MiniMetric label="Confidence" value={`${confidence}%`} accent />
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.58fr)]">
+          <HeroBeforeAfter activeDemo={activeDemo} compact />
+          <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
         </div>
-
-        <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_13rem]">
-          <AnimatedLineChart
-            key={activeDemo.key}
-            title={`${activeDemo.label} CTR by generation`}
-            points={activeDemo.points}
-          />
-          <div className="rounded-lg border border-edge bg-surface p-3">
-            <div className="text-[11px] font-semibold uppercase text-muted">Segment readout</div>
-            <div className="mt-3 grid gap-3">
-              {CHANNELS.map((channel, index) => (
-                <AudienceBar
-                  key={channel.label}
-                  label={channel.label}
-                  value={channel.value}
-                  change={channel.change}
-                  tone={channel.tone}
-                  delay={index * 120}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
 
         <div className="mt-4 rounded-lg border border-accent/20 bg-accent/10 p-3 text-sm leading-6 text-ink">
           {activeDemo.recommendation}
         </div>
       </div>
     </aside>
+  );
+}
+
+function HeroDataDeck({ activeDemo, liveTick }) {
+  const sampledVisitors = 1284 + liveTick * 17;
+  const confidence = Math.min(96, activeDemo.confidence + (liveTick % 4));
+  const negative = activeDemo.challengerCtr < activeDemo.championCtr;
+
+  return (
+    <div className="hero-data-deck mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,0.62fr)_minmax(15rem,0.5fr)]">
+      <AnimatedLineChart
+        key={`hero-data-${activeDemo.key}`}
+        title={`${activeDemo.label} CTR by generation`}
+        points={activeDemo.points}
+        badge={activeDemo.delta}
+        negative={negative}
+        large
+      />
+      <VariantComparisonPanel activeDemo={activeDemo} />
+      <DataPulsePanel
+        activeDemo={activeDemo}
+        confidence={confidence}
+        sampledVisitors={sampledVisitors}
+        liveTick={liveTick}
+      />
+    </div>
+  );
+}
+
+function VariantComparisonPanel({ activeDemo }) {
+  const negative = activeDemo.challengerCtr < activeDemo.championCtr;
+
+  return (
+    <div className="rounded-lg border border-edge bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase text-muted">Live comparison</div>
+          <h3 className="mt-1 text-base font-semibold text-ink">Champion vs variant</h3>
+        </div>
+        <span
+          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+            negative ? "bg-lose/10 text-lose" : "bg-win/10 text-win"
+          }`}
+        >
+          {activeDemo.delta}
+        </span>
+      </div>
+      <div className="mt-5 grid gap-4">
+        <ComparisonBar label="Champion" value={activeDemo.championCtr} tone={negative ? "win" : "neutral"} />
+        <ComparisonBar label="Variant" value={activeDemo.challengerCtr} tone={negative ? "lose" : "win"} />
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <MiniMetric label="Intent" value={activeDemo.label} />
+        <MiniMetric
+          label="Serve"
+          value={negative ? "Champion" : "Variant"}
+          accent={!negative}
+          negative={negative}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ComparisonBar({ label, value, tone }) {
+  const color = tone === "win" ? "bg-win" : tone === "lose" ? "bg-lose" : "bg-accent";
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs">
+        <span className="font-semibold text-ink">{label}</span>
+        <span className={`font-semibold tabular-nums ${tone === "lose" ? "text-lose" : tone === "win" ? "text-win" : "text-muted"}`}>
+          {value}%
+        </span>
+      </div>
+      <div className="h-3 overflow-hidden rounded-full bg-surface-2">
+        <div className={`hero-animated-bar h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function DataPulsePanel({ activeDemo, confidence, sampledVisitors, liveTick }) {
+  const negative = activeDemo.challengerCtr < activeDemo.championCtr;
+  const cells = Array.from({ length: 18 }, (_, index) => {
+    const active = (index + liveTick) % 4 === 0;
+    const hot = (index + activeDemo.challengerCtr) % 7 === 0;
+    return { active, hot };
+  });
+
+  return (
+    <div className="rounded-lg border border-edge bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase text-muted">Moving evidence</div>
+          <h3 className="mt-1 text-base font-semibold text-ink">Samples streaming in</h3>
+        </div>
+        <span className="live-dot h-2.5 w-2.5 rounded-full bg-accent" aria-hidden />
+      </div>
+      <div className="data-pulse-grid mt-5 grid grid-cols-6 gap-2" aria-hidden>
+        {cells.map((cell, index) => (
+          <span
+            key={index}
+            className={`data-pulse-cell rounded-md ${
+              cell.hot ? "is-hot" : cell.active ? "is-active" : ""
+            }`}
+          />
+        ))}
+      </div>
+      <div className="mt-5 grid gap-2">
+        <MiniMetric label="Sampled" value={sampledVisitors.toLocaleString("en-US")} />
+        <MiniMetric label="Confidence" value={`${confidence}%`} accent />
+        <MiniMetric
+          label="Decision"
+          value={negative ? "Protect" : "Ship"}
+          accent={!negative}
+          negative={negative}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -825,6 +916,8 @@ function ExperimentBoard({ activeDemo, liveTick }) {
             key={`experiment-${activeDemo.key}`}
             title={`${activeDemo.label} CTR over eight approved generations`}
             points={activeDemo.points}
+            badge={activeDemo.delta}
+            negative={activeDemo.challengerCtr < activeDemo.championCtr}
             large
           />
           <div className="grid gap-3">
@@ -895,7 +988,7 @@ function FlowRail() {
   );
 }
 
-function AnimatedLineChart({ title, points, large = false }) {
+function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false, large = false }) {
   const width = 320;
   const height = large ? 190 : 132;
   const pad = 22;
@@ -914,15 +1007,19 @@ function AnimatedLineChart({ title, points, large = false }) {
     <div className="rounded-lg border border-edge bg-surface p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="text-xs font-semibold uppercase text-muted">{title}</div>
-        <span className="rounded-md bg-win/10 px-2 py-1 text-[11px] font-semibold text-win">
-          +31 pts
+        <span
+          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+            negative ? "bg-lose/10 text-lose" : "bg-win/10 text-win"
+          }`}
+        >
+          {badge}
         </span>
       </div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className={`${large ? "h-56" : "h-36"} w-full`}
         role="img"
-        aria-label="CTR rises from 38 percent to 69 percent across eight approved generations"
+        aria-label={`${title} across eight approved generations`}
       >
         {[40, 50, 60, 70].map((tick) => {
           const y = pad + (1 - (tick - min) / (max - min)) * (height - pad * 2);
@@ -940,8 +1037,17 @@ function AnimatedLineChart({ title, points, large = false }) {
           points={line}
           className="hero-chart-line"
           fill="none"
-          stroke="var(--color-accent)"
+          stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
           strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polyline
+          points={line}
+          className="hero-chart-line-flow"
+          fill="none"
+          stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
