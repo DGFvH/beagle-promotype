@@ -388,6 +388,15 @@ a:focus-visible,
   border-top: 1px solid color-mix(in srgb, var(--color-edge), transparent 25%);
 }
 
+.hero-signal-card {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface), transparent 0%),
+      color-mix(in srgb, var(--color-accent), white 92%)
+    );
+}
+
 .hero-stack-pill {
   background:
     linear-gradient(
@@ -428,9 +437,152 @@ a:focus-visible,
     0 14px 28px -22px rgba(21, 32, 43, 0.42);
 }
 
+.hero-cockpit-frame {
+  position: relative;
+}
+
+.hero-cockpit-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 42%,
+      rgba(255, 255, 255, 0.4) 48%,
+      transparent 54%,
+      transparent 100%
+    );
+  transform: translateX(-120%);
+  animation: heroScan 5.8s ease-in-out infinite;
+}
+
+.demo-hero-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-edge), var(--color-ink) 10%);
+  background: var(--color-surface);
+  padding: 0.875rem;
+  box-shadow:
+    0 1px 2px rgba(21, 32, 43, 0.06),
+    0 18px 38px -28px rgba(21, 32, 43, 0.42);
+}
+
+.demo-hero-card-win {
+  border-color: color-mix(in srgb, var(--color-win), transparent 48%);
+  box-shadow:
+    0 1px 2px rgba(21, 32, 43, 0.06),
+    0 22px 44px -28px color-mix(in srgb, var(--color-win), transparent 24%);
+}
+
+.demo-hero-card-win::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      transparent 36%,
+      color-mix(in srgb, var(--color-win), transparent 82%) 48%,
+      transparent 60%,
+      transparent 100%
+    );
+  transform: translateX(-125%);
+  animation: heroScan 4.8s ease-in-out infinite;
+}
+
+@keyframes heroScan {
+  0%,
+  38% {
+    transform: translateX(-125%);
+  }
+  72%,
+  100% {
+    transform: translateX(125%);
+  }
+}
+
+@keyframes heroBarGrow {
+  from {
+    transform: scaleX(0.04);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-animated-bar {
+  transform-origin: left center;
+  animation: heroBarGrow 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+
+.hero-traffic-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-traffic-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.12) 0 9px,
+      transparent 9px 18px
+    );
+  animation: heroTraffic 1.8s linear infinite;
+}
+
+@keyframes heroTraffic {
+  to {
+    transform: translateX(18px);
+  }
+}
+
+.hero-chart-area {
+  fill: color-mix(in srgb, var(--color-accent), transparent 88%);
+}
+
+.hero-chart-line {
+  stroke-dasharray: 560;
+  stroke-dashoffset: 560;
+  animation: heroLineDraw 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes heroLineDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.hero-chart-point {
+  opacity: 0;
+  transform-origin: center;
+  animation: heroPointPop 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--point-delay, 0ms);
+}
+
+@keyframes heroPointPop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .hero-scroll-stack {
   display: grid;
-  width: min(100%, 1180px);
+  width: min(100%, 1240px);
   margin: 0 auto;
   gap: 2rem;
   padding: 0 clamp(1rem, 4vw, 2rem) 4rem;
@@ -543,10 +695,18 @@ a:focus-visible,
 
 @media (prefers-reduced-motion: reduce) {
   .reveal-on-scroll,
-  .reveal-card {
+  .reveal-card,
+  .hero-animated-bar,
+  .hero-traffic-fill::after,
+  .hero-cockpit-frame::after,
+  .demo-hero-card-win::after,
+  .hero-chart-line,
+  .hero-chart-point {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 
