@@ -459,6 +459,22 @@ a:focus-visible,
   animation: heroScan 5.8s ease-in-out infinite;
 }
 
+.audience-tab {
+  min-height: 4.25rem;
+  box-shadow:
+    0 1px 1px rgba(21, 32, 43, 0.04),
+    0 12px 28px -24px rgba(21, 32, 43, 0.34);
+}
+.audience-tab:hover {
+  border-color: color-mix(in srgb, var(--color-accent), transparent 45%);
+  transform: translateY(-1px);
+}
+.audience-tab.is-active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 16px 34px -24px color-mix(in srgb, var(--color-accent), transparent 18%);
+}
+
 .demo-hero-card {
   position: relative;
   overflow: hidden;
@@ -478,6 +494,13 @@ a:focus-visible,
     0 22px 44px -28px color-mix(in srgb, var(--color-win), transparent 24%);
 }
 
+.demo-hero-card-lose {
+  border-color: color-mix(in srgb, var(--color-lose), transparent 54%);
+  box-shadow:
+    0 1px 2px rgba(21, 32, 43, 0.06),
+    0 22px 44px -30px color-mix(in srgb, var(--color-lose), transparent 35%);
+}
+
 .demo-hero-card-win::after {
   content: "";
   position: absolute;
@@ -494,6 +517,24 @@ a:focus-visible,
     );
   transform: translateX(-125%);
   animation: heroScan 4.8s ease-in-out infinite;
+}
+
+.demo-hero-card-lose::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      transparent 36%,
+      color-mix(in srgb, var(--color-lose), transparent 88%) 48%,
+      transparent 60%,
+      transparent 100%
+    );
+  transform: translateX(-125%);
+  animation: heroScan 5.4s ease-in-out infinite;
 }
 
 @keyframes heroScan {
@@ -567,6 +608,44 @@ a:focus-visible,
   transform-origin: center;
   animation: heroPointPop 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--point-delay, 0ms);
+}
+
+.live-feed {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-feed::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--color-accent);
+  opacity: 0.55;
+}
+
+.live-feed-row {
+  animation: feedRowIn 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes feedRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.segment-row {
+  width: 100%;
+}
+
+.segment-row:hover {
+  border-color: color-mix(in srgb, var(--color-accent), transparent 42%);
+  transform: translateY(-1px);
 }
 
 @keyframes heroPointPop {
@@ -700,8 +779,10 @@ a:focus-visible,
   .hero-traffic-fill::after,
   .hero-cockpit-frame::after,
   .demo-hero-card-win::after,
+  .demo-hero-card-lose::after,
   .hero-chart-line,
-  .hero-chart-point {
+  .hero-chart-point,
+  .live-feed-row {
     opacity: 1;
     transform: none;
     transition: none;

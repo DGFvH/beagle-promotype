@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -82,30 +82,112 @@ const FLOW = [
   },
 ];
 
-const MUTATIONS = [
-  { label: "Headline", before: "Project analytics for scaling teams", after: "Find the hero message that converts each traffic source" },
-  { label: "CTA", before: "Book a demo", after: "Analyze my landing page" },
-  { label: "Proof", before: "Trusted by modern teams", after: "38% to 69% CTR in 8 approved rounds" },
-  { label: "Layout", before: "Generic product mockup", after: "Experiment evidence beside the CTA" },
-];
-
 const CHANNELS = [
   { label: "Organic", value: 61, change: "+9", tone: "win" },
   { label: "Paid", value: 43, change: "-6", tone: "lose" },
   { label: "Mobile", value: 55, change: "+14", tone: "win" },
 ];
 
-const GENERATIONS = [38, 46, 52, 57, 61, 64, 67, 69];
-
 const SEGMENTS = [
-  { label: "Organic search", champion: 52, challenger: 61, delta: "+9", confidence: 82, winner: "challenger" },
-  { label: "Paid traffic", champion: 49, challenger: 43, delta: "-6", confidence: 74, winner: "champion" },
-  { label: "Mobile visitors", champion: 41, challenger: 55, delta: "+14", confidence: 88, winner: "challenger" },
-  { label: "Returning visitors", champion: 58, challenger: 62, delta: "+4", confidence: 64, winner: "challenger" },
+  { key: "organic", label: "Organic search", champion: 52, challenger: 61, delta: "+9", confidence: 82, winner: "challenger" },
+  { key: "paid", label: "Paid traffic", champion: 49, challenger: 43, delta: "-6", confidence: 74, winner: "champion" },
+  { key: "mobile", label: "Mobile visitors", champion: 41, challenger: 55, delta: "+14", confidence: 88, winner: "challenger" },
+  { key: "organic", label: "Returning visitors", champion: 58, challenger: 62, delta: "+4", confidence: 64, winner: "challenger" },
+];
+
+const AUDIENCE_DEMOS = [
+  {
+    key: "organic",
+    label: "Organic",
+    fullLabel: "Organic search",
+    intent: "Researching options",
+    traffic: "4,820 sessions",
+    championTitle: "Project analytics for scaling teams",
+    challengerTitle: "Find the hero message that converts organic demand",
+    championProof: "Trusted by modern teams",
+    challengerProof: "+9 pts after proof moved above the CTA",
+    championCta: "Book a demo",
+    challengerCta: "Analyze my landing page",
+    championCtr: 52,
+    challengerCtr: 61,
+    confidence: 82,
+    delta: "+9 pts",
+    recommendation: "Serve the challenger to organic visitors and queue a proof-depth test.",
+    points: [38, 44, 49, 54, 57, 59, 61, 62],
+    mutations: [
+      { label: "Headline", before: "Project analytics for scaling teams", after: "Find the hero message that converts organic demand" },
+      { label: "CTA", before: "Book a demo", after: "Analyze my landing page" },
+      { label: "Proof", before: "Trusted by modern teams", after: "+9 pts after proof moved above the CTA" },
+      { label: "Layout", before: "Static product mockup", after: "Experiment evidence beside the CTA" },
+    ],
+  },
+  {
+    key: "paid",
+    label: "Paid",
+    fullLabel: "Paid traffic",
+    intent: "High-intent click from ads",
+    traffic: "2,140 sessions",
+    championTitle: "Project analytics for scaling teams",
+    challengerTitle: "Cut paid-page waste before the budget scales",
+    championProof: "Trusted by modern teams",
+    challengerProof: "Sharper ROI copy lost qualified ad clicks",
+    championCta: "Book a demo",
+    challengerCta: "Audit my paid page",
+    championCtr: 49,
+    challengerCtr: 43,
+    confidence: 74,
+    delta: "-6 pts",
+    recommendation: "Keep the champion for paid visitors and test pricing-proof instead.",
+    points: [49, 48, 47, 45, 44, 43, 43, 42],
+    mutations: [
+      { label: "Headline", before: "Project analytics for scaling teams", after: "Cut paid-page waste before the budget scales" },
+      { label: "CTA", before: "Book a demo", after: "Audit my paid page" },
+      { label: "Proof", before: "Trusted by modern teams", after: "Sharper ROI copy lost qualified ad clicks" },
+      { label: "Layout", before: "Demo-led hero", after: "Budget-risk proof beside the CTA" },
+    ],
+  },
+  {
+    key: "mobile",
+    label: "Mobile",
+    fullLabel: "Mobile visitors",
+    intent: "Short session, fast scan",
+    traffic: "3,610 sessions",
+    championTitle: "Project analytics for scaling teams",
+    challengerTitle: "See the winning hero before your next scroll",
+    championProof: "Trusted by modern teams",
+    challengerProof: "+14 pts when the CTA and evidence stay above the fold",
+    championCta: "Book a demo",
+    challengerCta: "Preview mobile hero",
+    championCtr: 41,
+    challengerCtr: 55,
+    confidence: 88,
+    delta: "+14 pts",
+    recommendation: "Serve the challenger on mobile and test a shorter proof line next.",
+    points: [35, 38, 42, 46, 50, 53, 55, 56],
+    mutations: [
+      { label: "Headline", before: "Project analytics for scaling teams", after: "See the winning hero before your next scroll" },
+      { label: "CTA", before: "Book a demo", after: "Preview mobile hero" },
+      { label: "Proof", before: "Trusted by modern teams", after: "+14 pts with CTA and evidence above the fold" },
+      { label: "Layout", before: "Wide desktop mockup", after: "Stacked evidence and fixed first CTA" },
+    ],
+  },
+];
+
+const TRAFFIC_EVENTS = [
+  { source: "Organic", variant: "Challenger", event: "CTA click", lift: "+9" },
+  { source: "Paid", variant: "Champion", event: "Demo intent", lift: "+6" },
+  { source: "Mobile", variant: "Challenger", event: "Hero tap", lift: "+14" },
+  { source: "Returning", variant: "Challenger", event: "Proof hover", lift: "+4" },
+  { source: "Organic", variant: "Challenger", event: "Scroll depth", lift: "+11" },
+  { source: "Paid", variant: "Champion", event: "Pricing click", lift: "+5" },
 ];
 
 export default function Hero({ onStart, onMethodology, onConfigure }) {
   const stageRef = useRef(null);
+  const [activeAudience, setActiveAudience] = useState(AUDIENCE_DEMOS[0].key);
+  const [liveTick, setLiveTick] = useState(0);
+  const activeDemo =
+    AUDIENCE_DEMOS.find((demo) => demo.key === activeAudience) ?? AUDIENCE_DEMOS[0];
 
   useEffect(() => {
     const root = stageRef.current;
@@ -134,6 +216,20 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
 
     items.forEach((item) => observer.observe(item));
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (prefersReducedMotion) return undefined;
+
+    const timer = window.setInterval(() => {
+      setLiveTick((tick) => (tick + 1) % 240);
+    }, 1600);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   return (
@@ -221,7 +317,12 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
             </div>
           </div>
 
-          <HeroCockpit />
+          <HeroCockpit
+            activeDemo={activeDemo}
+            activeAudience={activeAudience}
+            onAudienceChange={setActiveAudience}
+            liveTick={liveTick}
+          />
         </section>
 
         <ScrollSection
@@ -229,7 +330,12 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
           title="Show the proposed hero change, not a vague optimization score."
           text="The core demo is concrete: current hero, generated challenger, changed fields, expected metric movement, and the approval state before anything can publish."
         >
-          <DemoWorkbench />
+          <DemoWorkbench
+            activeDemo={activeDemo}
+            activeAudience={activeAudience}
+            onAudienceChange={setActiveAudience}
+            liveTick={liveTick}
+          />
         </ScrollSection>
 
         <ScrollSection
@@ -252,7 +358,7 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
           title="Every round should leave charts, not opinions."
           text="The demo readout tracks generation-by-generation lift, traffic allocation, approvals, confidence, and the exact mutation that produced the current champion."
         >
-          <ExperimentBoard />
+          <ExperimentBoard activeDemo={activeDemo} liveTick={liveTick} />
         </ScrollSection>
 
         <ScrollSection
@@ -262,8 +368,11 @@ export default function Hero({ onStart, onMethodology, onConfigure }) {
           contrast
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
-            <SegmentMatrix />
-            <ReportPanel />
+            <SegmentMatrix
+              activeAudience={activeAudience}
+              onAudienceChange={setActiveAudience}
+            />
+            <ReportPanel activeDemo={activeDemo} liveTick={liveTick} />
           </div>
         </ScrollSection>
       </div>
@@ -296,7 +405,10 @@ function SignalCard({ signal }) {
   );
 }
 
-function HeroCockpit() {
+function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick }) {
+  const sampledVisitors = 1284 + liveTick * 17;
+  const confidence = Math.min(96, activeDemo.confidence + (liveTick % 4));
+
   return (
     <aside
       className="hero-cockpit animate-pop hero-stagger-4 relative z-10"
@@ -307,7 +419,7 @@ function HeroCockpit() {
           <div>
             <div className="text-xs font-semibold uppercase text-muted">Live demo</div>
             <h2 className="mt-1 text-xl font-semibold leading-tight text-ink">
-              Pricing hero mutation in review.
+              {activeDemo.fullLabel} hero mutation in review.
             </h2>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-white">
@@ -326,16 +438,25 @@ function HeroCockpit() {
           </span>
         </div>
 
-        <HeroBeforeAfter compact />
+        <AudienceSelector
+          activeAudience={activeAudience}
+          onAudienceChange={onAudienceChange}
+        />
+
+        <HeroBeforeAfter activeDemo={activeDemo} compact />
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <MiniMetric label="Baseline CTR" value="38%" />
-          <MiniMetric label="Champion CTR" value="69%" accent />
-          <MiniMetric label="Paid reversal" value="-6pts" negative />
+          <MiniMetric label="Sampled visitors" value={sampledVisitors.toLocaleString("en-US")} />
+          <MiniMetric label="Variant CTR" value={`${activeDemo.challengerCtr}%`} accent={activeDemo.challengerCtr >= activeDemo.championCtr} negative={activeDemo.challengerCtr < activeDemo.championCtr} />
+          <MiniMetric label="Confidence" value={`${confidence}%`} accent />
         </div>
 
         <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_13rem]">
-          <AnimatedLineChart title="CTR by generation" points={GENERATIONS} />
+          <AnimatedLineChart
+            key={activeDemo.key}
+            title={`${activeDemo.label} CTR by generation`}
+            points={activeDemo.points}
+          />
           <div className="rounded-lg border border-edge bg-surface p-3">
             <div className="text-[11px] font-semibold uppercase text-muted">Segment readout</div>
             <div className="mt-3 grid gap-3">
@@ -353,47 +474,79 @@ function HeroCockpit() {
           </div>
         </div>
 
+        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
+
         <div className="mt-4 rounded-lg border border-accent/20 bg-accent/10 p-3 text-sm leading-6 text-ink">
-          The demo is not a decorative dashboard. It shows the proposed hero,
-          the exact changed fields, the experiment trend, and the audience split
-          that decides what ships.
+          {activeDemo.recommendation}
         </div>
       </div>
     </aside>
   );
 }
 
-function HeroBeforeAfter({ compact = false }) {
+function AudienceSelector({ activeAudience, onAudienceChange }) {
+  return (
+    <div className="mt-4 grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Audience demo selector">
+      {AUDIENCE_DEMOS.map((demo) => {
+        const active = demo.key === activeAudience;
+        return (
+          <button
+            key={demo.key}
+            type="button"
+            onClick={() => onAudienceChange(demo.key)}
+            className={`audience-tab rounded-lg border px-3 py-2 text-left ${
+              active ? "is-active border-accent bg-accent text-white" : "border-edge bg-surface text-ink"
+            }`}
+            role="tab"
+            aria-selected={active}
+          >
+            <span className="block text-xs font-semibold">{demo.label}</span>
+            <span className={`mt-1 block text-[11px] ${active ? "text-white/80" : "text-muted"}`}>
+              {demo.intent}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function HeroBeforeAfter({ activeDemo, compact = false }) {
   return (
     <div className={`hero-before-after mt-5 grid gap-3 ${compact ? "xl:grid-cols-2" : "lg:grid-cols-2"}`}>
       <HeroDemoCard
         label="Champion"
         tag="Control"
-        title="Project analytics for scaling teams"
-        proof="Trusted by modern teams"
-        cta="Book a demo"
+        title={activeDemo.championTitle}
+        proof={activeDemo.championProof}
+        cta={activeDemo.championCta}
         tone="neutral"
+        ctr={activeDemo.championCtr}
       />
       <HeroDemoCard
         label="Challenger"
-        tag="+31 pts"
-        title="Find the hero message that converts each traffic source"
-        proof="38% to 69% CTR in 8 approved rounds"
-        cta="Analyze my landing page"
-        tone="win"
+        tag={activeDemo.delta}
+        title={activeDemo.challengerTitle}
+        proof={activeDemo.challengerProof}
+        cta={activeDemo.challengerCta}
+        tone={activeDemo.challengerCtr >= activeDemo.championCtr ? "win" : "lose"}
+        ctr={activeDemo.challengerCtr}
       />
     </div>
   );
 }
 
-function HeroDemoCard({ label, tag, title, proof, cta, tone }) {
+function HeroDemoCard({ label, tag, title, proof, cta, tone, ctr }) {
+  const isWin = tone === "win";
+  const isLose = tone === "lose";
+
   return (
-    <div className={`demo-hero-card ${tone === "win" ? "demo-hero-card-win" : ""}`}>
+    <div className={`demo-hero-card ${isWin ? "demo-hero-card-win" : ""} ${isLose ? "demo-hero-card-lose" : ""}`}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-semibold uppercase text-muted">{label}</span>
         <span
           className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
-            tone === "win" ? "bg-win/10 text-win" : "bg-surface-2 text-muted"
+            isWin ? "bg-win/10 text-win" : isLose ? "bg-lose/10 text-lose" : "bg-surface-2 text-muted"
           }`}
         >
           {tag}
@@ -404,35 +557,55 @@ function HeroDemoCard({ label, tag, title, proof, cta, tone }) {
         <h3 className="mt-3 text-base font-semibold leading-tight text-ink">{title}</h3>
         <p className="mt-2 text-xs leading-5 text-muted">{proof}</p>
         <div className="mt-4 flex items-center gap-2">
-          <span className={`rounded-lg px-3 py-2 text-xs font-semibold ${tone === "win" ? "bg-accent text-white" : "bg-surface text-ink"}`}>
+          <span className={`rounded-lg px-3 py-2 text-xs font-semibold ${isWin ? "bg-accent text-white" : "bg-surface text-ink"}`}>
             {cta}
           </span>
           <span className="h-2 w-14 rounded-full bg-edge" />
+        </div>
+        <div className="mt-4">
+          <div className="mb-1 flex items-center justify-between text-[11px]">
+            <span className="font-semibold uppercase text-muted">Hero CTR</span>
+            <span className={`font-semibold tabular-nums ${isLose ? "text-lose" : isWin ? "text-win" : "text-ink"}`}>
+              {ctr}%
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-surface">
+            <div
+              className={`hero-animated-bar h-full rounded-full ${isLose ? "bg-lose" : isWin ? "bg-win" : "bg-accent"}`}
+              style={{ width: `${ctr}%` }}
+            />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function DemoWorkbench() {
+function DemoWorkbench({ activeDemo, activeAudience, onAudienceChange, liveTick }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
       <div data-reveal className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase text-muted">Before and after</div>
-            <h3 className="mt-1 text-xl font-semibold text-ink">A real-looking hero mutation</h3>
+            <div className="text-xs font-semibold uppercase text-muted">Interactive before and after</div>
+            <h3 className="mt-1 text-xl font-semibold text-ink">
+              The hero changes with the selected audience
+            </h3>
           </div>
           <Sparkles className="text-accent" size={22} />
         </div>
-        <HeroBeforeAfter />
+        <AudienceSelector
+          activeAudience={activeAudience}
+          onAudienceChange={onAudienceChange}
+        />
+        <HeroBeforeAfter activeDemo={activeDemo} />
         <div className="mt-5 overflow-hidden rounded-lg border border-edge">
           <div className="grid grid-cols-[0.7fr_1fr_1fr] bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase text-muted">
             <span>Field</span>
             <span>Current</span>
             <span>Challenger</span>
           </div>
-          {MUTATIONS.map((item, index) => (
+          {activeDemo.mutations.map((item, index) => (
             <div
               key={item.label}
               className="grid grid-cols-[0.7fr_1fr_1fr] gap-3 border-t border-edge px-3 py-3 text-xs"
@@ -455,23 +628,26 @@ function DemoWorkbench() {
           <ShieldCheck className="text-accent" size={22} />
         </div>
         <div className="mt-5 grid gap-3">
-          <EvidenceRow label="Hypothesis" value="Channel-aware copy increases CTA intent" state="ready" />
+          <EvidenceRow label="Audience" value={`${activeDemo.fullLabel}: ${activeDemo.intent}`} state="ready" />
+          <EvidenceRow label="Hypothesis" value="Audience-aware copy increases CTA intent" state="ready" />
           <EvidenceRow label="Primary KPI" value="Hero CTA click-through rate" state="ready" />
-          <EvidenceRow label="Guardrail" value="No brand, pricing, or legal claim changed" state="ready" />
-          <EvidenceRow label="Launch state" value="Blocked until approval" state="review" />
+          <EvidenceRow label="Recommendation" value={activeDemo.recommendation} state="review" />
         </div>
         <div className="mt-5 rounded-lg border border-edge bg-surface-2 p-3">
           <div className="mb-3 flex items-center justify-between text-xs">
             <span className="font-semibold text-ink">Traffic plan</span>
-            <span className="font-semibold text-muted">50/50 sticky split</span>
+            <span className="font-semibold text-muted">{activeDemo.traffic}</span>
           </div>
           <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-edge">
-            <div className="bg-surface p-3 text-center text-xs font-semibold text-muted">Champion</div>
-            <div className="hero-traffic-fill bg-accent p-3 text-center text-xs font-semibold text-white">
-              Challenger
+            <div className="bg-surface p-3 text-center text-xs font-semibold text-muted">
+              Champion {activeDemo.championCtr}%
+            </div>
+            <div className={`${activeDemo.challengerCtr >= activeDemo.championCtr ? "bg-accent" : "bg-lose"} hero-traffic-fill p-3 text-center text-xs font-semibold text-white`}>
+              Variant {activeDemo.challengerCtr}%
             </div>
           </div>
         </div>
+        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} />
       </div>
     </div>
   );
@@ -491,6 +667,50 @@ function EvidenceRow({ label, value, state }) {
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-semibold uppercase text-muted">{label}</div>
         <div className="mt-0.5 text-sm font-semibold text-ink">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function LiveTrafficFeed({ activeDemo, liveTick, compact = false }) {
+  const offset = liveTick % TRAFFIC_EVENTS.length;
+  const orderedEvents = [
+    ...TRAFFIC_EVENTS.slice(offset),
+    ...TRAFFIC_EVENTS.slice(0, offset),
+  ].slice(0, compact ? 3 : 4);
+  const sampled = 420 + liveTick * 9 + activeDemo.challengerCtr;
+
+  return (
+    <div className={`${compact ? "mt-4" : "mt-5"} live-feed rounded-lg border border-edge bg-surface p-3`}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase text-muted">Live sample feed</div>
+          <div className="mt-1 text-sm font-semibold text-ink">
+            {activeDemo.fullLabel} evidence stream
+          </div>
+        </div>
+        <span className="rounded-md bg-surface-2 px-2 py-1 text-[11px] font-semibold tabular-nums text-muted">
+          {sampled.toLocaleString("en-US")} sampled
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {orderedEvents.map((event, index) => {
+          const active = event.source === activeDemo.label;
+          return (
+            <div
+              key={`${event.source}-${event.event}-${index}-${liveTick}`}
+              className={`live-feed-row grid grid-cols-[0.8fr_1fr_0.5fr] items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                active ? "border-accent/25 bg-accent/10" : "border-edge bg-surface-2"
+              }`}
+            >
+              <span className="font-semibold text-ink">{event.source}</span>
+              <span className="truncate text-muted">{event.variant}: {event.event}</span>
+              <span className={`text-right font-semibold tabular-nums ${event.variant === "Champion" ? "text-ink" : "text-win"}`}>
+                {event.lift}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -583,24 +803,49 @@ function ProblemFunnel() {
   );
 }
 
-function ExperimentBoard() {
+function ExperimentBoard({ activeDemo, liveTick }) {
+  const exposure = 2600 + liveTick * 23;
+  const decision =
+    activeDemo.challengerCtr >= activeDemo.championCtr ? "Variant leads" : "Champion protects";
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
       <div data-reveal className="hero-data-card reveal-card rounded-lg border border-edge bg-surface p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-xs font-semibold uppercase text-muted">Experiment telemetry</div>
-            <h3 className="mt-1 text-xl font-semibold text-ink">A visible loop from mutation to lift</h3>
+            <h3 className="mt-1 text-xl font-semibold text-ink">
+              {activeDemo.fullLabel}: live lift and confidence
+            </h3>
           </div>
           <LineChart className="text-accent" size={22} />
         </div>
         <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
-          <AnimatedLineChart title="CTR lift over eight approved generations" points={GENERATIONS} large />
+          <AnimatedLineChart
+            key={`experiment-${activeDemo.key}`}
+            title={`${activeDemo.label} CTR over eight approved generations`}
+            points={activeDemo.points}
+            large
+          />
           <div className="grid gap-3">
-            <MetricComparison label="Champion CTR" before="38%" after="69%" />
-            <MetricComparison label="Median confidence" before="52%" after="86%" />
-            <MetricComparison label="Approved mutations" before="1" after="8" />
+            <MetricComparison
+              label="Champion vs variant"
+              before={`${activeDemo.championCtr}%`}
+              after={`${activeDemo.challengerCtr}%`}
+              negative={activeDemo.challengerCtr < activeDemo.championCtr}
+            />
+            <MetricComparison
+              label="Confidence"
+              before="52%"
+              after={`${Math.min(96, activeDemo.confidence + (liveTick % 4))}%`}
+            />
+            <MetricComparison label="Exposures sampled" before="0" after={exposure.toLocaleString("en-US")} />
           </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <MiniMetric label="Decision" value={decision} accent={activeDemo.challengerCtr >= activeDemo.championCtr} negative={activeDemo.challengerCtr < activeDemo.championCtr} />
+          <MiniMetric label="Delta" value={activeDemo.delta} accent={activeDemo.challengerCtr >= activeDemo.championCtr} negative={activeDemo.challengerCtr < activeDemo.championCtr} />
+          <MiniMetric label="Traffic source" value={activeDemo.label} />
         </div>
       </div>
 
@@ -608,11 +853,12 @@ function ExperimentBoard() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-xs font-semibold uppercase text-muted">Run state</div>
-            <h3 className="mt-1 text-xl font-semibold text-ink">What changed in this generation</h3>
+            <h3 className="mt-1 text-xl font-semibold text-ink">What is moving right now</h3>
           </div>
           <GitBranch className="text-accent" size={22} />
         </div>
         <FlowRail />
+        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} />
       </div>
     </div>
   );
@@ -715,20 +961,22 @@ function AnimatedLineChart({ title, points, large = false }) {
   );
 }
 
-function MetricComparison({ label, before, after }) {
+function MetricComparison({ label, before, after, negative = false }) {
   return (
     <div className="rounded-lg border border-edge bg-surface-2 p-3">
       <div className="text-[11px] font-semibold uppercase text-muted">{label}</div>
       <div className="mt-3 flex items-center gap-3">
         <span className="text-lg font-semibold tabular-nums text-muted">{before}</span>
         <ArrowRight size={15} className="text-accent" />
-        <span className="text-2xl font-semibold tabular-nums text-win">{after}</span>
+        <span className={`text-2xl font-semibold tabular-nums ${negative ? "text-lose" : "text-win"}`}>
+          {after}
+        </span>
       </div>
     </div>
   );
 }
 
-function SegmentMatrix() {
+function SegmentMatrix({ activeAudience, onAudienceChange }) {
   const aggregate = { champion: 47, challenger: 53, delta: "+6" };
 
   return (
@@ -757,7 +1005,13 @@ function SegmentMatrix() {
       </div>
       <div className="mt-5 grid gap-3">
         {SEGMENTS.map((row, index) => (
-          <SegmentRow key={row.label} row={row} index={index} />
+          <SegmentRow
+            key={row.label}
+            row={row}
+            index={index}
+            active={row.key === activeAudience}
+            onSelect={() => onAudienceChange(row.key)}
+          />
         ))}
       </div>
       <div className="mt-4 rounded-lg border border-lose/25 bg-lose/10 p-3 text-sm leading-6 text-ink">
@@ -768,11 +1022,15 @@ function SegmentMatrix() {
   );
 }
 
-function SegmentRow({ row, index }) {
+function SegmentRow({ row, index, active, onSelect }) {
   const challengerWins = row.winner === "challenger";
   return (
-    <div
-      className="rounded-lg border border-edge bg-surface-2 p-3"
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`segment-row rounded-lg border p-3 text-left ${
+        active ? "border-accent bg-accent/10" : "border-edge bg-surface-2"
+      }`}
       style={{ "--reveal-delay": `${index * 90}ms` }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -795,7 +1053,7 @@ function SegmentRow({ row, index }) {
         </span>
         <span className="font-medium text-muted">Confidence {row.confidence}%</span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -814,7 +1072,9 @@ function SplitBar({ label, value, tone }) {
   );
 }
 
-function ReportPanel() {
+function ReportPanel({ activeDemo, liveTick }) {
+  const confidence = Math.min(96, activeDemo.confidence + (liveTick % 4));
+
   return (
     <div
       data-reveal
@@ -828,14 +1088,19 @@ function ReportPanel() {
         <FileText className="text-accent" size={22} />
       </div>
       <div className="mt-5 grid gap-3">
-        <ReportLine label="Mutation" value="Message, CTA, proof order, evidence panel" />
-        <ReportLine label="Aggregate" value="Variant wins overall CTR by 6 points" />
-        <ReportLine label="Heterogeneity" value="Paid traffic reverses: champion wins by 6 points" />
-        <ReportLine label="Next test" value="Separate paid hero from organic and mobile hero" />
+        <ReportLine label="Audience" value={`${activeDemo.fullLabel}: ${activeDemo.intent}`} />
+        <ReportLine label="Observed delta" value={`${activeDemo.delta} at ${confidence}% confidence`} />
+        <ReportLine label="Serving rule" value={activeDemo.recommendation} />
+        <ReportLine label="Next test" value={activeDemo.mutations[0].after} />
       </div>
-      <div className="mt-5 rounded-lg border border-win/25 bg-win/10 p-3 text-sm font-semibold text-win">
-        The report turns the split result into a serving rule and the next
-        approved hypothesis, not just a chart screenshot.
+      <div
+        className={`mt-5 rounded-lg border p-3 text-sm font-semibold ${
+          activeDemo.challengerCtr >= activeDemo.championCtr
+            ? "border-win/25 bg-win/10 text-win"
+            : "border-lose/25 bg-lose/10 text-lose"
+        }`}
+      >
+        {activeDemo.recommendation}
       </div>
     </div>
   );
