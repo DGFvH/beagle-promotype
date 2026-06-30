@@ -367,7 +367,7 @@ function HeroCockpit({ activeDemo, activeAudience, onAudienceChange, liveTick })
 
         <HeroDataDeck activeDemo={activeDemo} liveTick={liveTick} />
 
-        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} compact />
+        <LiveTrafficFeed activeDemo={activeDemo} compact />
       </div>
     </aside>
   );
@@ -657,7 +657,7 @@ function DemoWorkbench({ activeDemo, activeAudience, onAudienceChange, liveTick 
             </div>
           </div>
         </div>
-        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} />
+        <LiveTrafficFeed activeDemo={activeDemo} />
       </div>
     </div>
   );
@@ -682,13 +682,10 @@ function EvidenceRow({ label, value, state }) {
   );
 }
 
-function LiveTrafficFeed({ activeDemo, liveTick, compact = false }) {
-  const offset = liveTick % TRAFFIC_EVENTS.length;
-  const orderedEvents = [
-    ...TRAFFIC_EVENTS.slice(offset),
-    ...TRAFFIC_EVENTS.slice(0, offset),
-  ].slice(0, compact ? 3 : 4);
-  const sampled = 420 + liveTick * 9 + activeDemo.challengerCtr;
+function LiveTrafficFeed({ activeDemo, compact = false }) {
+  const orderedEvents = [...TRAFFIC_EVENTS]
+    .sort((a, b) => Number(b.source === activeDemo.label) - Number(a.source === activeDemo.label))
+    .slice(0, compact ? 3 : 4);
 
   return (
     <div className={`${compact ? "mt-4" : "mt-5"} live-feed rounded-lg border border-edge bg-surface p-3`}>
@@ -700,7 +697,7 @@ function LiveTrafficFeed({ activeDemo, liveTick, compact = false }) {
           </div>
         </div>
         <span className="rounded-md bg-surface-2 px-2 py-1 text-[11px] font-semibold tabular-nums text-muted">
-          {sampled.toLocaleString("en-US")} sampled
+          {activeDemo.traffic}
         </span>
       </div>
       <div className="mt-3 grid gap-2">
@@ -708,7 +705,7 @@ function LiveTrafficFeed({ activeDemo, liveTick, compact = false }) {
           const active = event.source === activeDemo.label;
           return (
             <div
-              key={`${event.source}-${event.event}-${index}-${liveTick}`}
+              key={`${event.source}-${event.event}-${index}`}
               className={`live-feed-row grid grid-cols-[0.8fr_1fr_0.5fr] items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
                 active ? "border-accent/25 bg-accent/10" : "border-edge bg-surface-2"
               }`}
@@ -871,7 +868,7 @@ function ExperimentBoard({ activeDemo, liveTick }) {
           <GitBranch className="text-accent" size={22} />
         </div>
         <FlowRail />
-        <LiveTrafficFeed activeDemo={activeDemo} liveTick={liveTick} />
+        <LiveTrafficFeed activeDemo={activeDemo} />
       </div>
     </div>
   );
@@ -918,9 +915,10 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
   const sampleMax = 3200;
   const sampleMin = 600;
   const chartEnd = width - pad - rightPad;
+  const visibleCount = Math.min(points.length, (liveTick % points.length) + 1);
   const movedPoints = points.map((value, index) => {
     const wave = Math.sin((liveTick + index * 1.7) * 0.72) * (negative ? 0.75 : 1.15);
-    const lastPointLift = index === points.length - 1 ? Math.sin(liveTick * 0.9) * 0.9 : 0;
+    const lastPointLift = index === visibleCount - 1 ? Math.sin(liveTick * 0.9) * 0.9 : 0;
     return Math.max(min + 1, Math.min(max - 1, value + wave + lastPointLift));
   });
   const samples = points.map((value, index) => {
@@ -929,16 +927,20 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
     return Math.min(sampleMax, base + pulse);
   });
   const step = (chartEnd - pad) / (points.length - 1);
-  const coords = movedPoints.map((value, index) => {
+  const visiblePoints = movedPoints.slice(0, visibleCount);
+  const visibleSamples = samples.slice(0, visibleCount);
+  const coords = visiblePoints.map((value, index) => {
     const x = pad + index * step;
     const y = pad + (1 - (value - min) / (max - min)) * (height - pad * 2);
     return [x, y];
   });
-  const cursorIndex = liveTick % coords.length;
+  const cursorIndex = coords.length - 1;
   const [cursorX, cursorY] = coords[cursorIndex];
-  const cursorSample = samples[cursorIndex];
+  const cursorSample = visibleSamples[cursorIndex];
+  const currentPoint = visiblePoints[cursorIndex];
   const line = coords.map(([x, y]) => `${x},${y}`).join(" ");
-  const area = `${pad},${height - pad} ${line} ${chartEnd},${height - pad}`;
+  const lastX = coords[coords.length - 1][0];
+  const area = `${pad},${height - pad} ${line} ${lastX},${height - pad}`;
 
   return (
     <div className="hero-chart-card rounded-lg border border-edge bg-surface p-4">
@@ -949,15 +951,18 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
             negative ? "bg-lose/10 text-lose" : "bg-win/10 text-win"
           }`}
         >
-          {badge}
+          T{visibleCount} / {badge}
         </span>
       </div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className={`${large ? "h-56" : "h-36"} w-full`}
         role="img"
-        aria-label={`${title} across eight approved generations`}
+        aria-label={`${title}; observed through generation ${visibleCount}`}
       >
+        <line className="hero-chart-axis" x1={pad} x2={pad} y1={pad} y2={height - pad} />
+        <line className="hero-chart-axis" x1={pad} x2={chartEnd} y1={height - pad} y2={height - pad} />
+        <line className="hero-chart-axis hero-chart-axis-sample" x1={chartEnd} x2={chartEnd} y1={pad} y2={height - pad} />
         {[40, 50, 60, 70].map((tick) => {
           const y = pad + (1 - (tick - min) / (max - min)) * (height - pad * 2);
           return (
@@ -983,7 +988,18 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
         <text x={chartEnd + 4} y={13} className="fill-muted text-[8px]">
           samples
         </text>
-        {samples.map((sample, index) => {
+        {points.map((_, index) => {
+          const x = pad + index * step;
+          return (
+            <g key={`tick-${index}`}>
+              <line className="hero-chart-tick" x1={x} x2={x} y1={height - pad} y2={height - pad + 4} />
+              <text x={x - 4} y={height - 5} className="fill-muted text-[8px]">
+                T{index + 1}
+              </text>
+            </g>
+          );
+        })}
+        {visibleSamples.map((sample, index) => {
           const barWidth = Math.max(5, step * 0.34);
           const x = pad + index * step - barWidth / 2;
           const barHeight = ((sample - sampleMin) / (sampleMax - sampleMin)) * (height - pad * 2);
@@ -1000,41 +1016,48 @@ function AnimatedLineChart({ title, points, badge = "+31 pts", negative = false,
             />
           );
         })}
-        <polygon points={area} className="hero-chart-area" />
-        <polyline
-          points={line}
-          className="hero-chart-line"
-          fill="none"
-          stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <polyline
-          points={line}
-          className="hero-chart-line-flow"
-          fill="none"
-          stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {coords.map(([x, y], index) => (
-          <circle
-            key={index}
-            className="hero-chart-point"
-            style={{ "--point-delay": `${600 + index * 80}ms` }}
-            cx={x}
-            cy={y}
-            r={index === coords.length - 1 ? 4.5 : 3}
-            fill={index === coords.length - 1 ? "var(--color-win)" : "var(--color-accent)"}
+        {coords.length > 1 && <polygon points={area} className="hero-chart-area" />}
+        {coords.length > 1 && (
+          <polyline
+            points={line}
+            className="hero-chart-line"
+            fill="none"
+            stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-        ))}
+        )}
+        {coords.length > 1 && (
+          <polyline
+            points={line}
+            className="hero-chart-line-flow"
+            fill="none"
+            stroke={negative ? "var(--color-lose)" : "var(--color-accent)"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+        {coords.map(([x, y], index) => {
+          const latest = index === coords.length - 1;
+          return (
+            <circle
+              key={`${index}-${visibleCount}`}
+              className="hero-chart-point"
+              style={{ "--point-delay": `${index * 50}ms` }}
+              cx={x}
+              cy={y}
+              r={latest ? 4.5 : 3}
+              fill={latest ? (negative ? "var(--color-lose)" : "var(--color-win)") : "var(--color-accent)"}
+            />
+          );
+        })}
         <g className="hero-chart-cursor" transform={`translate(${cursorX} 0)`}>
           <line x1="0" x2="0" y1={pad} y2={height - pad} />
           <circle cx="0" cy={cursorY} r="4.5" />
           <text x="7" y={Math.max(pad + 10, cursorY - 8)}>
-            {Math.round(movedPoints[cursorIndex])}% / {Math.round(cursorSample / 100) / 10}k
+            T{visibleCount}: {Math.round(currentPoint)}% / {Math.round(cursorSample / 100) / 10}k
           </text>
         </g>
       </svg>
